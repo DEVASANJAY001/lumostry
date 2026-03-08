@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion } from "framer-motion";
-import { ArrowLeft, Send, MoreVertical, Shield, Flag } from "lucide-react";
+import { ArrowLeft, Send, MoreVertical, Shield, Flag, ImagePlus, Loader2 } from "lucide-react";
 import ReportUserModal from "@/components/ReportUserModal";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -35,7 +35,9 @@ export default function ChatConversationPage() {
   const queryClient = useQueryClient();
   const [newMessage, setNewMessage] = useState("");
   const [showReport, setShowReport] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: otherProfile } = useQuery({
     queryKey: ["profile", userId],
@@ -147,6 +149,51 @@ export default function ChatConversationPage() {
     setNewMessage("");
   };
 
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Please select a valid image file");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be less than 5MB");
+      return;
+    }
+
+    setUploadingPhoto(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${user.id}/${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("chat-photos")
+        .upload(path, file);
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from("chat-photos")
+        .getPublicUrl(path);
+
+      const { error } = await supabase.from("messages").insert({
+        sender_id: user.id,
+        receiver_id: userId!,
+        content: urlData.publicUrl,
+        message_type: "image",
+      });
+      if (error) throw error;
+
+      queryClient.invalidateQueries({ queryKey: ["messages", user.id, userId] });
+      queryClient.invalidateQueries({ queryKey: ["chats"] });
+    } catch (err) {
+      toast.error("Failed to send photo");
+    } finally {
+      setUploadingPhoto(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen">
       {/* Header */}
@@ -221,7 +268,16 @@ export default function ChatConversationPage() {
                     : "bg-secondary text-foreground rounded-bl-md"
                 }`}
               >
-                <p>{msg.content}</p>
+                {msg.message_type === "image" ? (
+                  <img
+                    src={msg.content}
+                    alt="Photo"
+                    className="rounded-xl max-w-full max-h-60 object-cover cursor-pointer"
+                    onClick={() => window.open(msg.content, "_blank")}
+                  />
+                ) : (
+                  <p>{msg.content}</p>
+                )}
                 <p className={`text-[10px] mt-1 ${isMine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
                   {format(new Date(msg.created_at), "HH:mm")}
                   {isMine && msg.is_read && " ✓✓"}
@@ -238,6 +294,25 @@ export default function ChatConversationPage() {
         onSubmit={handleSend}
         className="flex items-center gap-2 p-4 bg-card/90 backdrop-blur-xl border-t border-border"
       >
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handlePhotoUpload}
+        />
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploadingPhoto}
+          className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+        >
+          {uploadingPhoto ? (
+            <Loader2 className="w-5 h-5 animate-spin" />
+          ) : (
+            <ImagePlus className="w-5 h-5" />
+          )}
+        </button>
         <Input
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
