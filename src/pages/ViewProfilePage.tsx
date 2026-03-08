@@ -8,11 +8,13 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import type { Profile } from "@/hooks/useProfile";
 import { useState } from "react";
+import ReportUserModal from "@/components/ReportUserModal";
 
 export default function ViewProfilePage() {
   const { userId } = useParams<{ userId: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [showReport, setShowReport] = useState(false);
   const [photoIndex, setPhotoIndex] = useState(0);
 
   const { data: profile } = useQuery({
@@ -202,10 +204,24 @@ export default function ViewProfilePage() {
               >
                 <Shield className="w-4 h-4" />
               </Button>
+              <Button
+                onClick={() => setShowReport(true)}
+                variant="outline"
+                className="h-12 rounded-xl text-destructive hover:text-destructive border-destructive/20"
+              >
+                <Flag className="w-4 h-4" />
+              </Button>
             </div>
           </motion.div>
         )}
       </div>
+
+      <ReportUserModal
+        reportedUserId={userId!}
+        reportedUserName={profile.name || profile.username || "User"}
+        isOpen={showReport}
+        onClose={() => setShowReport(false)}
+      />
     </div>
   );
 }

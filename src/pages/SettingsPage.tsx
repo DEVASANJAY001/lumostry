@@ -38,6 +38,12 @@ export default function SettingsPage() {
         { icon: Shield, label: "Safety Tips", desc: "Stay safe while dating", onClick: () => {} },
       ],
     },
+    {
+      section: "Legal",
+      items: [
+        { icon: Shield, label: "Terms & Conditions", desc: "Read our terms of service", onClick: () => navigate("/terms") },
+      ],
+    },
   ];
 
   return (

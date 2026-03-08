@@ -8,6 +8,7 @@ export type Profile = {
   name: string;
   username: string | null;
   age: number | null;
+  date_of_birth: string | null;
   gender: "male" | "female" | "non_binary" | "prefer_not_to_say" | null;
   preference: "male" | "female" | "everyone" | null;
   bio: string | null;

@@ -4,11 +4,15 @@ import { useUpdateProfile } from "@/hooks/useProfile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, ArrowLeft, Sparkles, User, Heart, Star } from "lucide-react";
+import { ArrowRight, ArrowLeft, Sparkles, User, Heart, Star, CalendarIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { format, differenceInYears } from "date-fns";
+import { cn } from "@/lib/utils";
 
 const INTERESTS = [
   "Music", "Travel", "Gaming", "Fitness", "Photography",
@@ -33,7 +37,7 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState({
     username: "",
-    age: "",
+    dateOfBirth: null as Date | null,
     bio: "",
     gender: "" as "male" | "female" | "non_binary" | "prefer_not_to_say" | "",
     preference: "" as "male" | "female" | "everyone" | "",
@@ -79,9 +83,16 @@ export default function OnboardingPage() {
         avatar_url = urlData.publicUrl;
       }
 
+      const age = form.dateOfBirth ? differenceInYears(new Date(), form.dateOfBirth) : null;
+      if (age !== null && age < 18) {
+        toast.error("You must be at least 18 years old to use Connectly");
+        return;
+      }
+
       await updateProfile.mutateAsync({
         username: form.username,
-        age: parseInt(form.age),
+        age,
+        date_of_birth: form.dateOfBirth ? format(form.dateOfBirth, "yyyy-MM-dd") : null,
         bio: form.bio,
         gender: form.gender || null,
         preference: form.preference || null,
@@ -128,15 +139,49 @@ export default function OnboardingPage() {
           className="bg-secondary border-border text-center"
         />
 
-        <Input
-          type="number"
-          placeholder="Your age"
-          value={form.age}
-          onChange={(e) => setForm({ ...form, age: e.target.value })}
-          className="bg-secondary border-border text-center"
-          min={18}
-          max={99}
-        />
+        <div>
+          <label className="text-sm font-medium mb-1 block text-center">Date of Birth</label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full justify-center text-center bg-secondary border-border",
+                  !form.dateOfBirth && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="w-4 h-4 mr-2" />
+                {form.dateOfBirth
+                  ? format(form.dateOfBirth, "PPP")
+                  : "Select your birthday"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="center">
+              <Calendar
+                mode="single"
+                selected={form.dateOfBirth || undefined}
+                onSelect={(date) => setForm({ ...form, dateOfBirth: date || null })}
+                disabled={(date) =>
+                  date > new Date() || date < new Date("1920-01-01")
+                }
+                defaultMonth={new Date(2000, 0)}
+                captionLayout="dropdown-buttons"
+                fromYear={1920}
+                toYear={new Date().getFullYear() - 18}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+          {form.dateOfBirth && differenceInYears(new Date(), form.dateOfBirth) < 18 && (
+            <p className="text-xs text-destructive mt-1 text-center">You must be 18+ to use Connectly</p>
+          )}
+          {form.dateOfBirth && differenceInYears(new Date(), form.dateOfBirth) >= 18 && (
+            <p className="text-xs text-muted-foreground mt-1 text-center">
+              Age: {differenceInYears(new Date(), form.dateOfBirth)} ✓
+            </p>
+          )}
+        </div>
       </div>
     </motion.div>,
 
@@ -224,8 +269,9 @@ export default function OnboardingPage() {
     </motion.div>,
   ];
 
+  const dobAge = form.dateOfBirth ? differenceInYears(new Date(), form.dateOfBirth) : 0;
   const canNext =
-    (step === 0 && form.username && form.age && avatarFile) ||
+    (step === 0 && form.username && form.dateOfBirth && dobAge >= 18 && avatarFile) ||
     (step === 1 && form.gender && form.preference) ||
     (step === 2 && form.interests.length >= 1);
 

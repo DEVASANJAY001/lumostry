@@ -17,6 +17,7 @@ import SettingsPage from "./pages/SettingsPage";
 import VerifyProfilePage from "./pages/VerifyProfilePage";
 import ViewProfilePage from "./pages/ViewProfilePage";
 import FriendRequestsPage from "./pages/FriendRequestsPage";
+import TermsPage from "./pages/TermsPage";
 import NotFound from "./pages/NotFound";
 import { Sparkles } from "lucide-react";
 
@@ -64,6 +65,7 @@ function AppRoutes() {
       <Route path="/verify" element={<VerifyProfilePage />} />
       <Route path="/user/:userId" element={<ViewProfilePage />} />
       <Route path="/friend-requests" element={<FriendRequestsPage />} />
+      <Route path="/terms" element={<TermsPage />} />
       <Route path="/onboarding" element={<OnboardingPage />} />
       <Route path="*" element={<NotFound />} />
     </Routes>

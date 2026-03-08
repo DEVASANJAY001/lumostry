@@ -6,7 +6,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion } from "framer-motion";
-import { ArrowLeft, Send, MoreVertical, Shield } from "lucide-react";
+import { ArrowLeft, Send, MoreVertical, Shield, Flag } from "lucide-react";
+import ReportUserModal from "@/components/ReportUserModal";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import type { Profile } from "@/hooks/useProfile";
@@ -33,6 +34,7 @@ export default function ChatConversationPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [newMessage, setNewMessage] = useState("");
+  const [showReport, setShowReport] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { data: otherProfile } = useQuery({
@@ -185,6 +187,11 @@ export default function ChatConversationPage() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem
+              onClick={() => setShowReport(true)}
+            >
+              <Flag className="w-4 h-4 mr-2" /> Report User
+            </DropdownMenuItem>
+            <DropdownMenuItem
               onClick={() => blockMutation.mutate()}
               className="text-destructive"
             >
@@ -244,6 +251,13 @@ export default function ChatConversationPage() {
           <Send className="w-4 h-4" />
         </Button>
       </form>
+
+      <ReportUserModal
+        reportedUserId={userId!}
+        reportedUserName={otherProfile?.name || otherProfile?.username || "User"}
+        isOpen={showReport}
+        onClose={() => setShowReport(false)}
+      />
     </div>
   );
 }
