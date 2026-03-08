@@ -155,7 +155,7 @@ export default function ChatConversationPage() {
           <ArrowLeft className="w-5 h-5" />
         </button>
 
-        <button onClick={() => navigate(`/profile/${userId}`)} className="flex items-center gap-3 flex-1 text-left">
+        <button onClick={() => navigate(`/user/${userId}`)} className="flex items-center gap-3 flex-1 text-left">
           <div className="relative">
             <div className="w-10 h-10 rounded-full overflow-hidden bg-secondary">
               {otherProfile?.avatar_url ? (
