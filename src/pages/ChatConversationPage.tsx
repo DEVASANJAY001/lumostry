@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion } from "framer-motion";
-import { ArrowLeft, Send, MoreVertical, Shield, Flag } from "lucide-react";
+import { ArrowLeft, Send, MoreVertical, Shield, Flag, ImagePlus, Loader2 } from "lucide-react";
 import ReportUserModal from "@/components/ReportUserModal";
 import { format } from "date-fns";
 import { toast } from "sonner";
