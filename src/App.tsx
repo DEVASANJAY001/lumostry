@@ -12,6 +12,11 @@ import MatchesPage from "./pages/MatchesPage";
 import ChatsPage from "./pages/ChatsPage";
 import ChatConversationPage from "./pages/ChatConversationPage";
 import ProfilePage from "./pages/ProfilePage";
+import EditProfilePage from "./pages/EditProfilePage";
+import SettingsPage from "./pages/SettingsPage";
+import VerifyProfilePage from "./pages/VerifyProfilePage";
+import ViewProfilePage from "./pages/ViewProfilePage";
+import FriendRequestsPage from "./pages/FriendRequestsPage";
 import NotFound from "./pages/NotFound";
 import { Sparkles } from "lucide-react";
 
@@ -54,6 +59,11 @@ function AppRoutes() {
       <Route path="/chats" element={<ChatsPage />} />
       <Route path="/chat/:userId" element={<ChatConversationPage />} />
       <Route path="/profile" element={<ProfilePage />} />
+      <Route path="/edit-profile" element={<EditProfilePage />} />
+      <Route path="/settings" element={<SettingsPage />} />
+      <Route path="/verify" element={<VerifyProfilePage />} />
+      <Route path="/user/:userId" element={<ViewProfilePage />} />
+      <Route path="/friend-requests" element={<FriendRequestsPage />} />
       <Route path="/onboarding" element={<OnboardingPage />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
