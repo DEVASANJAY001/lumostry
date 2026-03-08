@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,8 +6,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion } from "framer-motion";
-import { ArrowLeft, Send, MoreVertical, Shield, Flag, ImagePlus, Loader2 } from "lucide-react";
+import { ArrowLeft, Send, MoreVertical, Shield, Flag, ImagePlus, Loader2, Check, CheckCheck } from "lucide-react";
 import ReportUserModal from "@/components/ReportUserModal";
+import TypingIndicator from "@/components/TypingIndicator";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import type { Profile } from "@/hooks/useProfile";
@@ -36,8 +37,11 @@ export default function ChatConversationPage() {
   const [newMessage, setNewMessage] = useState("");
   const [showReport, setShowReport] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const { data: otherProfile } = useQuery({
     queryKey: ["profile", userId],
@@ -80,7 +84,7 @@ export default function ChatConversationPage() {
     }
   }, [messages, user, userId]);
 
-  // Realtime subscription
+  // Realtime subscription for messages
   useEffect(() => {
     if (!user || !userId) return;
 
@@ -89,14 +93,18 @@ export default function ChatConversationPage() {
       .on(
         "postgres_changes",
         {
-          event: "INSERT",
+          event: "*",
           schema: "public",
           table: "messages",
-          filter: `receiver_id=eq.${user.id}`,
         },
         (payload) => {
-          const msg = payload.new as Message;
-          if (msg.sender_id === userId) {
+          if (payload.eventType === "INSERT") {
+            const msg = payload.new as Message;
+            if (msg.sender_id === userId || msg.receiver_id === userId) {
+              queryClient.invalidateQueries({ queryKey: ["messages", user.id, userId] });
+            }
+          } else if (payload.eventType === "UPDATE") {
+            // Read receipt update
             queryClient.invalidateQueries({ queryKey: ["messages", user.id, userId] });
           }
         }
@@ -108,10 +116,58 @@ export default function ChatConversationPage() {
     };
   }, [user, userId, queryClient]);
 
+  // Typing indicator via presence channel
+  useEffect(() => {
+    if (!user || !userId) return;
+
+    const channelName = [user.id, userId].sort().join("-");
+    const channel = supabase.channel(`typing-${channelName}`, {
+      config: { presence: { key: user.id } },
+    });
+
+    channel
+      .on("presence", { event: "sync" }, () => {
+        const state = channel.presenceState();
+        const otherState = state[userId];
+        if (otherState && Array.isArray(otherState)) {
+          const typing = (otherState[0] as any)?.typing === true;
+          setIsTyping(typing);
+        } else {
+          setIsTyping(false);
+        }
+      })
+      .subscribe(async (status) => {
+        if (status === "SUBSCRIBED") {
+          await channel.track({ typing: false });
+        }
+      });
+
+    typingChannelRef.current = channel;
+
+    return () => {
+      supabase.removeChannel(channel);
+      typingChannelRef.current = null;
+    };
+  }, [user, userId]);
+
+  const broadcastTyping = useCallback((typing: boolean) => {
+    typingChannelRef.current?.track({ typing });
+  }, []);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewMessage(e.target.value);
+    broadcastTyping(true);
+
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      broadcastTyping(false);
+    }, 2000);
+  };
+
   // Scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, isTyping]);
 
   const sendMutation = useMutation({
     mutationFn: async (content: string) => {
@@ -126,6 +182,7 @@ export default function ChatConversationPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["messages", user?.id, userId] });
       queryClient.invalidateQueries({ queryKey: ["chats"] });
+      broadcastTyping(false);
     },
   });
 
@@ -214,7 +271,7 @@ export default function ChatConversationPage() {
               )}
             </div>
             {otherProfile?.is_online && (
-              <div className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-success border-2 border-card" />
+              <div className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-card" />
             )}
           </div>
 
@@ -223,7 +280,13 @@ export default function ChatConversationPage() {
               {otherProfile?.name || otherProfile?.username || "..."}
             </h2>
             <p className="text-xs text-muted-foreground">
-              {otherProfile?.is_online ? "Online" : "Offline"}
+              {isTyping ? (
+                <span className="text-primary font-medium">typing...</span>
+              ) : otherProfile?.is_online ? (
+                "Online"
+              ) : (
+                "Offline"
+              )}
             </p>
           </div>
         </button>
@@ -235,9 +298,7 @@ export default function ChatConversationPage() {
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              onClick={() => setShowReport(true)}
-            >
+            <DropdownMenuItem onClick={() => setShowReport(true)}>
               <Flag className="w-4 h-4 mr-2" /> Report User
             </DropdownMenuItem>
             <DropdownMenuItem
@@ -278,14 +339,26 @@ export default function ChatConversationPage() {
                 ) : (
                   <p>{msg.content}</p>
                 )}
-                <p className={`text-[10px] mt-1 ${isMine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
-                  {format(new Date(msg.created_at), "HH:mm")}
-                  {isMine && msg.is_read && " ✓✓"}
-                </p>
+                <div className={`flex items-center gap-1 mt-1 ${isMine ? "justify-end" : ""}`}>
+                  <span className={`text-[10px] ${isMine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                    {format(new Date(msg.created_at), "HH:mm")}
+                  </span>
+                  {isMine && (
+                    msg.is_read ? (
+                      <CheckCheck className="w-3.5 h-3.5 text-blue-300" />
+                    ) : (
+                      <Check className="w-3.5 h-3.5 text-primary-foreground/50" />
+                    )
+                  )}
+                </div>
               </div>
             </motion.div>
           );
         })}
+
+        {/* Typing indicator */}
+        {isTyping && <TypingIndicator />}
+
         <div ref={messagesEndRef} />
       </div>
 
@@ -315,7 +388,7 @@ export default function ChatConversationPage() {
         </button>
         <Input
           value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
+          onChange={handleInputChange}
           placeholder="Type a message..."
           className="flex-1 bg-secondary border-border rounded-full px-4"
         />
