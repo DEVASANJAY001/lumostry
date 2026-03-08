@@ -16,22 +16,22 @@ export default function Lightbox({ src, onClose }: LightboxProps) {
   const dragStart = useRef<{ x: number; y: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const getDistance = (touches: TouchList) => {
-    const dx = touches[0].clientX - touches[1].clientX;
-    const dy = touches[0].clientY - touches[1].clientY;
+  const getDistance = (t0: React.Touch, t1: React.Touch) => {
+    const dx = t0.clientX - t1.clientX;
+    const dy = t0.clientY - t1.clientY;
     return Math.sqrt(dx * dx + dy * dy);
   };
 
-  const getCenter = (touches: TouchList) => ({
-    x: (touches[0].clientX + touches[1].clientX) / 2,
-    y: (touches[0].clientY + touches[1].clientY) / 2,
+  const getCenter = (t0: React.Touch, t1: React.Touch) => ({
+    x: (t0.clientX + t1.clientX) / 2,
+    y: (t0.clientY + t1.clientY) / 2,
   });
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     if (e.touches.length === 2) {
       e.preventDefault();
-      lastDistance.current = getDistance(e.touches);
-      lastCenter.current = getCenter(e.touches);
+      lastDistance.current = getDistance(e.touches[0], e.touches[1]);
+      lastCenter.current = getCenter(e.touches[0], e.touches[1]);
     } else if (e.touches.length === 1 && scale > 1) {
       dragStart.current = {
         x: e.touches[0].clientX - translate.x,
@@ -44,7 +44,7 @@ export default function Lightbox({ src, onClose }: LightboxProps) {
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     if (e.touches.length === 2 && lastDistance.current !== null) {
       e.preventDefault();
-      const newDistance = getDistance(e.touches);
+      const newDistance = getDistance(e.touches[0], e.touches[1]);
       const ratio = newDistance / lastDistance.current;
       setScale((prev) => Math.min(Math.max(prev * ratio, 1), 5));
       lastDistance.current = newDistance;
