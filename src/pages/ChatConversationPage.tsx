@@ -34,6 +34,10 @@ export default function ChatConversationPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [newMessage, setNewMessage] = useState("");
+  const [showReport, setShowReport] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
+  const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { data: otherProfile } = useQuery({
@@ -185,6 +189,11 @@ export default function ChatConversationPage() {
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              onClick={() => setShowReport(true)}
+            >
+              <Flag className="w-4 h-4 mr-2" /> Report User
+            </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => blockMutation.mutate()}
               className="text-destructive"
