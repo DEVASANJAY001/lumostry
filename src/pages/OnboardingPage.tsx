@@ -112,7 +112,10 @@ export default function OnboardingPage() {
             {avatarPreview ? (
               <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
             ) : (
-              <span className="text-4xl">📸</span>
+              <div className="flex flex-col items-center">
+                <span className="text-3xl">📸</span>
+                <span className="text-[10px] text-muted-foreground mt-1">Required</span>
+              </div>
             )}
           </div>
           <input type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
@@ -222,9 +225,9 @@ export default function OnboardingPage() {
   ];
 
   const canNext =
-    (step === 0 && form.username && form.age) ||
+    (step === 0 && form.username && form.age && avatarFile) ||
     (step === 1 && form.gender && form.preference) ||
-    step === 2;
+    (step === 2 && form.interests.length >= 1);
 
   return (
     <div className="min-h-screen flex flex-col p-6 relative">
