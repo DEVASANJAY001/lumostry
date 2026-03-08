@@ -1,9 +1,10 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Compass, MessageCircle, Heart, User } from "lucide-react";
+import { Compass, MessageCircle, Heart, User, Search } from "lucide-react";
 import { motion } from "framer-motion";
 
 const NAV_ITEMS = [
   { path: "/discover", icon: Compass, label: "Discover" },
+  { path: "/search", icon: Search, label: "Search" },
   { path: "/matches", icon: Heart, label: "Matches" },
   { path: "/chats", icon: MessageCircle, label: "Chats" },
   { path: "/profile", icon: User, label: "Profile" },
