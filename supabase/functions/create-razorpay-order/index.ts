@@ -60,7 +60,7 @@ serve(async (req) => {
       body: JSON.stringify({
         amount: pkg.price_inr * 100, // in paise
         currency: "INR",
-        receipt: `pkg_${pkg.id}_${userId}`,
+        receipt: `rcpt_${Date.now()}`,
         notes: {
           user_id: userId,
           package_id: pkg.id,
