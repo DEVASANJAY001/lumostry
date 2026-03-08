@@ -155,29 +155,31 @@ export default function ChatConversationPage() {
           <ArrowLeft className="w-5 h-5" />
         </button>
 
-        <div className="relative">
-          <div className="w-10 h-10 rounded-full overflow-hidden bg-secondary">
-            {otherProfile?.avatar_url ? (
-              <img src={otherProfile.avatar_url} alt="" className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-lg">
-                {otherProfile?.gender === "female" ? "👩" : "👨"}
-              </div>
+        <button onClick={() => navigate(`/profile/${userId}`)} className="flex items-center gap-3 flex-1 text-left">
+          <div className="relative">
+            <div className="w-10 h-10 rounded-full overflow-hidden bg-secondary">
+              {otherProfile?.avatar_url ? (
+                <img src={otherProfile.avatar_url} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-lg">
+                  {otherProfile?.gender === "female" ? "👩" : "👨"}
+                </div>
+              )}
+            </div>
+            {otherProfile?.is_online && (
+              <div className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-success border-2 border-card" />
             )}
           </div>
-          {otherProfile?.is_online && (
-            <div className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-success border-2 border-card" />
-          )}
-        </div>
 
-        <div className="flex-1">
-          <h2 className="font-heading font-semibold text-sm">
-            {otherProfile?.name || otherProfile?.username || "..."}
-          </h2>
-          <p className="text-xs text-muted-foreground">
-            {otherProfile?.is_online ? "Online" : "Offline"}
-          </p>
-        </div>
+          <div className="flex-1">
+            <h2 className="font-heading font-semibold text-sm">
+              {otherProfile?.name || otherProfile?.username || "..."}
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              {otherProfile?.is_online ? "Online" : "Offline"}
+            </p>
+          </div>
+        </button>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
