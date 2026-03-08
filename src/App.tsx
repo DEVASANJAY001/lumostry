@@ -17,6 +17,7 @@ import SettingsPage from "./pages/SettingsPage";
 import VerifyProfilePage from "./pages/VerifyProfilePage";
 import ViewProfilePage from "./pages/ViewProfilePage";
 import FriendRequestsPage from "./pages/FriendRequestsPage";
+import TermsPage from "./pages/TermsPage";
 import NotFound from "./pages/NotFound";
 import { Sparkles } from "lucide-react";
 
