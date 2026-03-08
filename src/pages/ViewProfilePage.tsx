@@ -204,13 +204,19 @@ export default function ViewProfilePage() {
             </div>
 
             <div className="flex gap-3">
-              <Button
-                onClick={() => navigate(`/chat/${userId}`)}
-                variant="secondary"
-                className="flex-1 h-12 rounded-xl"
-              >
-                <MessageCircle className="w-4 h-4 mr-2" /> Message
-              </Button>
+              {isMatched ? (
+                <Button
+                  onClick={() => navigate(`/chat/${userId}`)}
+                  variant="secondary"
+                  className="flex-1 h-12 rounded-xl"
+                >
+                  <MessageCircle className="w-4 h-4 mr-2" /> Message
+                </Button>
+              ) : (
+                <div className="flex-1 text-center py-3 rounded-xl bg-secondary text-muted-foreground text-sm">
+                  Match to unlock chat 💬
+                </div>
+              )}
               <Button
                 onClick={() => blockMutation.mutate()}
                 variant="outline"
