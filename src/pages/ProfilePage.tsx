@@ -36,8 +36,8 @@ export default function ProfilePage() {
     enabled: !!user,
   });
 
-  const { data: walletBalance } = useQuery({
-    queryKey: ["wallet", user?.id],
+  const { data: walletData } = useQuery({
+    queryKey: ["wallet-balance", user?.id],
     queryFn: async () => {
       if (!user) return 0;
       const { data } = await supabase
@@ -49,6 +49,7 @@ export default function ProfilePage() {
     },
     enabled: !!user,
   });
+  const walletBalance = typeof walletData === "number" ? walletData : 0;
 
   // Get pending friend request count
   const { data: requestCount } = useQuery({
