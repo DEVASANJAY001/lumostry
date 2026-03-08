@@ -170,6 +170,27 @@ export default function UserGalleryPage() {
           <p className="text-sm text-muted-foreground text-center py-10">No gallery photos yet</p>
         )}
       </div>
+
+      {/* Fullscreen Lightbox */}
+      {viewPhoto && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 bg-background/95 backdrop-blur-xl flex items-center justify-center"
+          onClick={() => setViewPhoto(null)}
+        >
+          <button className="absolute top-4 right-4 w-10 h-10 rounded-full bg-card border border-border flex items-center justify-center z-10">
+            <X className="w-5 h-5" />
+          </button>
+          <img
+            src={viewPhoto}
+            alt=""
+            className="max-w-full max-h-full object-contain p-4"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </motion.div>
+      )}
     </div>
   );
 }
