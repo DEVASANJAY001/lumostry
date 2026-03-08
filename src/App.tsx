@@ -18,6 +18,7 @@ import VerifyProfilePage from "./pages/VerifyProfilePage";
 import ViewProfilePage from "./pages/ViewProfilePage";
 import FriendRequestsPage from "./pages/FriendRequestsPage";
 import TermsPage from "./pages/TermsPage";
+import SearchPage from "./pages/SearchPage";
 import NotFound from "./pages/NotFound";
 import { Sparkles } from "lucide-react";
 
@@ -56,6 +57,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={<Navigate to="/discover" replace />} />
       <Route path="/discover" element={<DiscoverPage />} />
+      <Route path="/search" element={<SearchPage />} />
       <Route path="/matches" element={<MatchesPage />} />
       <Route path="/chats" element={<ChatsPage />} />
       <Route path="/chat/:userId" element={<ChatConversationPage />} />
