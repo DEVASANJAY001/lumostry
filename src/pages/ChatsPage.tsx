@@ -63,10 +63,15 @@ export default function ChatsPage() {
           .eq("receiver_id", user.id)
           .eq("is_read", false);
 
+        const lastMsg = msgs?.[0];
+        const lastMessageText = lastMsg
+          ? lastMsg.message_type === "image" ? "📷 Photo" : lastMsg.content
+          : "Say hello! 👋";
+
         previews.push({
           profile: profile as Profile,
-          lastMessage: msgs?.[0]?.content || "Say hello! 👋",
-          lastMessageTime: msgs?.[0]?.created_at || profile.created_at,
+          lastMessage: lastMessageText,
+          lastMessageTime: lastMsg?.created_at || profile.created_at,
           unreadCount: count || 0,
         });
       }
