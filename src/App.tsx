@@ -2,25 +2,77 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { useProfile } from "@/hooks/useProfile";
+import AuthPage from "./pages/AuthPage";
+import OnboardingPage from "./pages/OnboardingPage";
+import DiscoverPage from "./pages/DiscoverPage";
+import MatchesPage from "./pages/MatchesPage";
+import ChatsPage from "./pages/ChatsPage";
+import ChatConversationPage from "./pages/ChatConversationPage";
+import ProfilePage from "./pages/ProfilePage";
 import NotFound from "./pages/NotFound";
+import { Sparkles } from "lucide-react";
 
 const queryClient = new QueryClient();
 
+function AppRoutes() {
+  const { user, loading } = useAuth();
+  const { data: profile, isLoading: profileLoading } = useProfile();
+
+  if (loading || (user && profileLoading)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Sparkles className="w-8 h-8 text-primary animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <Routes>
+        <Route path="*" element={<AuthPage />} />
+      </Routes>
+    );
+  }
+
+  if (user && profile && !profile.profile_complete) {
+    return (
+      <Routes>
+        <Route path="/onboarding" element={<OnboardingPage />} />
+        <Route path="*" element={<Navigate to="/onboarding" replace />} />
+      </Routes>
+    );
+  }
+
+  return (
+    <Routes>
+      <Route path="/" element={<Navigate to="/discover" replace />} />
+      <Route path="/discover" element={<DiscoverPage />} />
+      <Route path="/matches" element={<MatchesPage />} />
+      <Route path="/chats" element={<ChatsPage />} />
+      <Route path="/chat/:userId" element={<ChatConversationPage />} />
+      <Route path="/profile" element={<ProfilePage />} />
+      <Route path="/onboarding" element={<OnboardingPage />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <AuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <div className="max-w-lg mx-auto min-h-screen relative">
+            <AppRoutes />
+          </div>
+        </BrowserRouter>
+      </TooltipProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 
