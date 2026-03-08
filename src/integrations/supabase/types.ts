@@ -283,6 +283,27 @@ export type Database = {
         }
         Relationships: []
       }
+      profile_visitors: {
+        Row: {
+          id: string
+          profile_user_id: string
+          visited_at: string
+          visitor_user_id: string
+        }
+        Insert: {
+          id?: string
+          profile_user_id: string
+          visited_at?: string
+          visitor_user_id: string
+        }
+        Update: {
+          id?: string
+          profile_user_id?: string
+          visited_at?: string
+          visitor_user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           age: number | null
@@ -373,6 +394,33 @@ export type Database = {
           reason?: string
           reported_id?: string
           reporter_id?: string
+        }
+        Relationships: []
+      }
+      stories: {
+        Row: {
+          caption: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          media_url: string
+          user_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          media_url: string
+          user_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          media_url?: string
+          user_id?: string
         }
         Relationships: []
       }

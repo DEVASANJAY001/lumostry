@@ -32,6 +32,21 @@ export default function ViewProfilePage() {
     enabled: !!userId,
   });
 
+  // Track profile visit
+  useQuery({
+    queryKey: ["track-visit", user?.id, userId],
+    queryFn: async () => {
+      if (!user || !userId || user.id === userId) return null;
+      await supabase.from("profile_visitors" as any).upsert(
+        { profile_user_id: userId, visitor_user_id: user.id, visited_at: new Date().toISOString() } as any,
+        { onConflict: "profile_user_id,visitor_user_id" }
+      );
+      return true;
+    },
+    enabled: !!user && !!userId && user.id !== userId,
+    staleTime: Infinity,
+  });
+
   const { data: isMatched } = useQuery({
     queryKey: ["is-matched", user?.id, userId],
     queryFn: async () => {
