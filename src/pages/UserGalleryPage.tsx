@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
-import { ArrowLeft, Lock, Unlock, Wallet } from "lucide-react";
+import { ArrowLeft, Lock, Unlock, Wallet, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -14,6 +14,7 @@ export default function UserGalleryPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [unlocking, setUnlocking] = useState<string | null>(null);
+  const [viewPhoto, setViewPhoto] = useState<string | null>(null);
 
   const { data: ownerProfile } = useQuery({
     queryKey: ["gallery-owner", userId],
@@ -129,7 +130,12 @@ export default function UserGalleryPage() {
                 className="relative rounded-2xl overflow-hidden aspect-square bg-secondary"
               >
                 {isUnlocked ? (
-                  <img src={photo.photo_url} alt="" className="w-full h-full object-cover" />
+                  <img
+                    src={photo.photo_url}
+                    alt=""
+                    className="w-full h-full object-cover cursor-pointer"
+                    onClick={() => setViewPhoto(photo.photo_url)}
+                  />
                 ) : (
                   <div className="w-full h-full relative">
                     <img src={photo.photo_url} alt="" className="w-full h-full object-cover blur-xl scale-110" />
@@ -164,6 +170,27 @@ export default function UserGalleryPage() {
           <p className="text-sm text-muted-foreground text-center py-10">No gallery photos yet</p>
         )}
       </div>
+
+      {/* Fullscreen Lightbox */}
+      {viewPhoto && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 bg-background/95 backdrop-blur-xl flex items-center justify-center"
+          onClick={() => setViewPhoto(null)}
+        >
+          <button className="absolute top-4 right-4 w-10 h-10 rounded-full bg-card border border-border flex items-center justify-center z-10">
+            <X className="w-5 h-5" />
+          </button>
+          <img
+            src={viewPhoto}
+            alt=""
+            className="max-w-full max-h-full object-contain p-4"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </motion.div>
+      )}
     </div>
   );
 }
