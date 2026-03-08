@@ -5,59 +5,27 @@ interface VerifiedBadgeProps {
   size?: "sm" | "md" | "lg";
   type?: "verified" | "premium" | "trusted";
   className?: string;
-  animate?: boolean;
 }
 
-const sizeMap = {
-  sm: "w-4 h-4",
-  md: "w-5 h-5",
-  lg: "w-7 h-7",
-};
+const sizeMap = { sm: "w-4 h-4", md: "w-5 h-5", lg: "w-7 h-7" };
+const containerSizeMap = { sm: "w-5 h-5", md: "w-6 h-6", lg: "w-8 h-8" };
 
-const containerSizeMap = {
-  sm: "w-5 h-5",
-  md: "w-6 h-6",
-  lg: "w-8 h-8",
-};
+export default function VerifiedBadge({ size = "md", type = "verified", className = "" }: VerifiedBadgeProps) {
+  const spring = { type: "spring" as const, stiffness: 300, damping: 15 };
 
-export default function VerifiedBadge({ size = "md", type = "verified", className = "", animate = true }: VerifiedBadgeProps) {
-  const Wrapper = animate ? motion.div : "div";
-  const animateProps = animate
-    ? {
-        initial: { scale: 0, rotate: -180 },
-        animate: { scale: 1, rotate: 0 },
-        transition: { type: "spring", stiffness: 300, damping: 15 },
-      }
-    : {};
-
-  if (type === "verified") {
-    return (
-      <Wrapper
-        className={`${containerSizeMap[size]} rounded-full gradient-primary flex items-center justify-center shadow-glow ${className}`}
-        {...animateProps}
-      >
-        <CheckCircle className={`${sizeMap[size]} text-primary-foreground`} strokeWidth={2.5} />
-      </Wrapper>
-    );
-  }
-
-  if (type === "premium") {
-    return (
-      <Wrapper
-        className={`${containerSizeMap[size]} rounded-full bg-accent flex items-center justify-center ${className}`}
-        {...animateProps}
-      >
-        <Star className={`${sizeMap[size]} text-accent-foreground`} fill="currentColor" strokeWidth={0} />
-      </Wrapper>
-    );
-  }
+  const Icon = type === "verified" ? CheckCircle : type === "premium" ? Star : Shield;
+  const bg = type === "verified" ? "gradient-primary shadow-glow" : type === "premium" ? "bg-accent" : "bg-success";
+  const fill = type === "premium" ? { fill: "currentColor", strokeWidth: 0 } : { strokeWidth: 2.5 };
+  const textColor = type === "verified" ? "text-primary-foreground" : type === "premium" ? "text-accent-foreground" : "text-success-foreground";
 
   return (
-    <Wrapper
-      className={`${containerSizeMap[size]} rounded-full bg-success flex items-center justify-center ${className}`}
-      {...animateProps}
+    <motion.div
+      initial={{ scale: 0, rotate: -180 }}
+      animate={{ scale: 1, rotate: 0 }}
+      transition={spring}
+      className={`${containerSizeMap[size]} rounded-full ${bg} flex items-center justify-center ${className}`}
     >
-      <Shield className={`${sizeMap[size]} text-success-foreground`} strokeWidth={2.5} />
-    </Wrapper>
+      <Icon className={`${sizeMap[size]} ${textColor}`} {...fill} />
+    </motion.div>
   );
 }
