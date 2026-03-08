@@ -7,9 +7,14 @@ interface PageTransitionProps {
 }
 
 const pageVariants = {
-  initial: { opacity: 0, y: 12 },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -8 },
+  initial: { opacity: 0, y: 8, scale: 0.995 },
+  animate: { opacity: 1, y: 0, scale: 1 },
+  exit: { opacity: 0, y: -6, scale: 0.995 },
+};
+
+const pageTransition = {
+  duration: 0.3,
+  ease: [0.25, 0.1, 0.25, 1] as [number, number, number, number],
 };
 
 export default function PageTransition({ children, className = "" }: PageTransitionProps) {
@@ -19,7 +24,7 @@ export default function PageTransition({ children, className = "" }: PageTransit
       initial="initial"
       animate="animate"
       exit="exit"
-      transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
+      transition={pageTransition}
       className={className}
     >
       {children}

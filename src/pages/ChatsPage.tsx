@@ -16,6 +16,15 @@ interface ChatPreview {
   unreadCount: number;
 }
 
+const listItem = {
+  hidden: { opacity: 0, y: 6 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: i * 0.04, duration: 0.3, ease: [0.25, 0.1, 0.25, 1] as [number, number, number, number] },
+  }),
+};
+
 export default function ChatsPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -53,35 +62,50 @@ export default function ChatsPage() {
 
   return (
     <PageTransition className="min-h-screen pb-20">
-      <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border px-5 py-3">
+      <div className="sticky top-0 z-40 bg-background/85 backdrop-blur-2xl border-b border-border/60 px-5 py-3.5">
         <h1 className="text-lg font-heading font-semibold">Messages</h1>
       </div>
 
       {isLoading ? (
-        <div className="text-center py-20">
-          <MessageCircle className="w-7 h-7 text-primary animate-pulse mx-auto" />
+        <div className="space-y-2 p-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="flex items-center gap-3 p-3">
+              <div className="w-12 h-12 rounded-full bg-secondary animate-pulse" />
+              <div className="flex-1 space-y-2">
+                <div className="h-3 w-24 rounded bg-secondary animate-pulse" />
+                <div className="h-2.5 w-40 rounded bg-secondary animate-pulse" />
+              </div>
+            </div>
+          ))}
         </div>
       ) : chatPreviews.length === 0 ? (
-        <div className="text-center py-20 px-8">
-          <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center mx-auto mb-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="text-center py-24 px-8"
+        >
+          <div className="w-18 h-18 rounded-full bg-secondary flex items-center justify-center mx-auto mb-4 w-16 h-16">
             <MessageCircle className="w-7 h-7 text-muted-foreground" />
           </div>
           <h3 className="text-base font-heading font-semibold">No messages yet</h3>
-          <p className="text-muted-foreground text-sm mt-1">Match with someone to start chatting</p>
-        </div>
+          <p className="text-muted-foreground text-sm mt-1.5">Match with someone to start chatting</p>
+        </motion.div>
       ) : (
-        <div>
+        <div className="py-1">
           {chatPreviews.map((chat, i) => (
             <motion.button
               key={chat.profile.id}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: i * 0.02 }}
+              custom={i}
+              variants={listItem}
+              initial="hidden"
+              animate="visible"
+              whileTap={{ scale: 0.98, backgroundColor: "hsl(var(--secondary) / 0.5)" }}
               onClick={() => navigate(`/chat/${chat.profile.user_id}`)}
-              className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-secondary/30 transition-colors text-left active:bg-secondary/50"
+              className="w-full flex items-center gap-3 px-5 py-3.5 text-left transition-colors"
             >
-              <div className="relative">
-                <div className="w-12 h-12 rounded-full overflow-hidden bg-secondary flex-shrink-0">
+              <div className="relative flex-shrink-0">
+                <div className="w-13 h-13 rounded-full overflow-hidden bg-secondary w-[52px] h-[52px]">
                   {chat.profile.avatar_url ? (
                     <img src={chat.profile.avatar_url} alt="" className="w-full h-full object-cover" />
                   ) : (
@@ -91,23 +115,32 @@ export default function ChatsPage() {
                   )}
                 </div>
                 {chat.profile.is_online && (
-                  <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-success border-2 border-background" />
+                  <div className="absolute bottom-0.5 right-0.5 w-3 h-3 rounded-full bg-success border-2 border-background" />
                 )}
               </div>
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-medium text-sm truncate">{chat.profile.name || chat.profile.username}</h3>
-                  <span className="text-[11px] text-muted-foreground flex-shrink-0">
+                  <h3 className={`text-sm truncate ${chat.unreadCount > 0 ? "font-semibold" : "font-medium"}`}>
+                    {chat.profile.name || chat.profile.username}
+                  </h3>
+                  <span className={`text-[11px] flex-shrink-0 ml-2 ${chat.unreadCount > 0 ? "text-primary font-medium" : "text-muted-foreground"}`}>
                     {formatDistanceToNow(new Date(chat.lastMessageTime), { addSuffix: false })}
                   </span>
                 </div>
                 <div className="flex items-center justify-between mt-0.5">
-                  <p className="text-xs text-muted-foreground truncate pr-2">{chat.lastMessage}</p>
+                  <p className={`text-xs truncate pr-2 ${chat.unreadCount > 0 ? "text-foreground font-medium" : "text-muted-foreground"}`}>
+                    {chat.lastMessage}
+                  </p>
                   {chat.unreadCount > 0 && (
-                    <span className="w-5 h-5 rounded-full gradient-primary text-primary-foreground text-[10px] font-semibold flex items-center justify-center flex-shrink-0">
+                    <motion.span
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                      className="min-w-[20px] h-[20px] px-1 rounded-full gradient-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center flex-shrink-0 shadow-glow"
+                    >
                       {chat.unreadCount}
-                    </span>
+                    </motion.span>
                   )}
                 </div>
               </div>

@@ -114,6 +114,7 @@
 @layer base {
   * {
     @apply border-border;
+    -webkit-tap-highlight-color: transparent;
   }
 
   body {
@@ -121,13 +122,45 @@
     font-family: var(--font-body);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    transition: background-color 0.3s ease, color 0.3s ease;
+    transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     letter-spacing: -0.01em;
+    overscroll-behavior: none;
   }
 
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-heading);
-    letter-spacing: -0.02em;
+    letter-spacing: -0.025em;
+  }
+
+  /* Smooth scroll */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted));
+    border-radius: 999px;
+  }
+
+  /* Hide scrollbar for horizontal scroll areas */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Safe area bottom padding */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 }
 
@@ -164,5 +197,37 @@
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid hsl(var(--border) / 0.5);
+  }
+
+  /* Smooth interactive states */
+  .tap-scale {
+    @apply transition-transform duration-150 active:scale-[0.96];
+  }
+  .tap-scale-sm {
+    @apply transition-transform duration-100 active:scale-[0.92];
+  }
+
+  /* Staggered fade-in for lists */
+  .stagger-fade > * {
+    animation: stagger-fade-in 0.4s ease-out both;
+  }
+  .stagger-fade > *:nth-child(1) { animation-delay: 0ms; }
+  .stagger-fade > *:nth-child(2) { animation-delay: 40ms; }
+  .stagger-fade > *:nth-child(3) { animation-delay: 80ms; }
+  .stagger-fade > *:nth-child(4) { animation-delay: 120ms; }
+  .stagger-fade > *:nth-child(5) { animation-delay: 160ms; }
+  .stagger-fade > *:nth-child(6) { animation-delay: 200ms; }
+  .stagger-fade > *:nth-child(7) { animation-delay: 240ms; }
+  .stagger-fade > *:nth-child(8) { animation-delay: 280ms; }
+}
+
+@keyframes stagger-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
