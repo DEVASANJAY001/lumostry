@@ -55,10 +55,10 @@ export default function ProfileCard({ profile, onLike, onPass, onFriendRequest, 
       {swipeable && (
         <>
           <motion.div
-            className="absolute top-6 left-6 z-30 px-4 py-2 rounded-xl border-2 border-green-500 bg-green-500/20"
+            className="absolute top-6 left-6 z-30 px-4 py-2 rounded-xl border-2 border-primary bg-primary/20"
             style={{ opacity: likeOpacity }}
           >
-            <span className="text-green-500 font-bold text-lg">LIKE 💕</span>
+            <span className="text-primary font-bold text-lg">LIKE 💕</span>
           </motion.div>
           <motion.div
             className="absolute top-6 right-6 z-30 px-4 py-2 rounded-xl border-2 border-destructive bg-destructive/20"
