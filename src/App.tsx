@@ -26,6 +26,7 @@ import WalletPage from "./pages/WalletPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import MyGalleryPage from "./pages/MyGalleryPage";
 import UserGalleryPage from "./pages/UserGalleryPage";
+import WhoLikedMePage from "./pages/WhoLikedMePage";
 import NotFound from "./pages/NotFound";
 import { Sparkles } from "lucide-react";
 
@@ -83,6 +84,7 @@ function AppRoutes() {
       <Route path="/notifications" element={<NotificationsPage />} />
       <Route path="/my-gallery" element={<MyGalleryPage />} />
       <Route path="/gallery/:userId" element={<UserGalleryPage />} />
+      <Route path="/who-liked-me" element={<WhoLikedMePage />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
