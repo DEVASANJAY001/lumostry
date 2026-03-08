@@ -54,7 +54,7 @@ export default function BoostModal({ isOpen, onClose }: BoostModalProps) {
       // Create boost
       const expiresAt = new Date(Date.now() + BOOST_DURATION_MINUTES * 60 * 1000).toISOString();
       const { error: boostErr } = await supabase
-        .from("profile_boosts")
+        .from("profile_boosts" as any)
         .insert({ user_id: user.id, expires_at: expiresAt, points_spent: BOOST_COST });
       if (boostErr) throw boostErr;
     },

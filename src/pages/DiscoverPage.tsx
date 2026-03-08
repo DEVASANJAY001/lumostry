@@ -1,13 +1,15 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
 import ProfileCard from "@/components/ProfileCard";
 import BottomNav from "@/components/BottomNav";
+import MatchPopup from "@/components/MatchPopup";
+import BoostModal from "@/components/BoostModal";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { Flame, SlidersHorizontal } from "lucide-react";
+import { Flame, Undo2, Zap } from "lucide-react";
 import type { Profile } from "@/hooks/useProfile";
 
 export default function DiscoverPage() {
@@ -15,6 +17,10 @@ export default function DiscoverPage() {
   const { data: myProfile } = useProfile();
   const queryClient = useQueryClient();
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [showMatch, setShowMatch] = useState(false);
+  const [matchedProfile, setMatchedProfile] = useState<Profile | null>(null);
+  const [showBoost, setShowBoost] = useState(false);
+  const [lastSwiped, setLastSwiped] = useState<{ index: number; action: "like" | "pass" | "superlike" } | null>(null);
 
   const { data: profiles = [], isLoading } = useQuery({
     queryKey: ["discover", user?.id, myProfile?.preference],
@@ -55,7 +61,7 @@ export default function DiscoverPage() {
   });
 
   const likeMutation = useMutation({
-    mutationFn: async (likedId: string) => {
+    mutationFn: async ({ likedId, isSuper }: { likedId: string; isSuper: boolean }) => {
       const { error } = await supabase
         .from("likes")
         .insert({ liker_id: user!.id, liked_id: likedId });
@@ -68,9 +74,16 @@ export default function DiscoverPage() {
         .maybeSingle();
 
       if (match) {
-        toast("🎉 It's a Match!", {
-          description: "You and this person liked each other!",
-        });
+        // Get the matched profile for the popup
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("user_id", likedId)
+          .single();
+        if (profile) {
+          setMatchedProfile(profile as Profile);
+          setShowMatch(true);
+        }
       }
     },
     onSuccess: () => {
@@ -80,21 +93,44 @@ export default function DiscoverPage() {
 
   const handleLike = () => {
     if (profiles[currentIndex]) {
-      likeMutation.mutate(profiles[currentIndex].user_id);
+      setLastSwiped({ index: currentIndex, action: "like" });
+      likeMutation.mutate({ likedId: profiles[currentIndex].user_id, isSuper: false });
       setCurrentIndex((i) => i + 1);
     }
   };
 
   const handlePass = () => {
+    setLastSwiped({ index: currentIndex, action: "pass" });
     setCurrentIndex((i) => i + 1);
   };
 
   const handleSuperLike = () => {
     if (profiles[currentIndex]) {
-      likeMutation.mutate(profiles[currentIndex].user_id);
+      setLastSwiped({ index: currentIndex, action: "superlike" });
+      likeMutation.mutate({ likedId: profiles[currentIndex].user_id, isSuper: true });
       toast("⭐ Super Like sent!");
       setCurrentIndex((i) => i + 1);
     }
+  };
+
+  const handleRewind = async () => {
+    if (!lastSwiped || !user) return;
+
+    // If it was a like/superlike, remove the like
+    if (lastSwiped.action !== "pass") {
+      const prevProfile = profiles[lastSwiped.index];
+      if (prevProfile) {
+        await supabase
+          .from("likes")
+          .delete()
+          .eq("liker_id", user.id)
+          .eq("liked_id", prevProfile.user_id);
+      }
+    }
+
+    setCurrentIndex(lastSwiped.index);
+    setLastSwiped(null);
+    toast("↩ Rewound to previous profile");
   };
 
   const currentProfile = profiles[currentIndex];
@@ -102,11 +138,28 @@ export default function DiscoverPage() {
 
   return (
     <div className="min-h-screen pb-20 bg-background">
-      {/* Tinder-style header */}
+      {/* Header */}
       <div className="sticky top-0 z-40 bg-background px-5 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Flame className="w-7 h-7 text-primary" />
           <h1 className="text-2xl font-heading font-bold text-gradient">Connectly</h1>
+        </div>
+        <div className="flex items-center gap-2">
+          {/* Rewind button */}
+          <button
+            onClick={handleRewind}
+            disabled={!lastSwiped}
+            className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center disabled:opacity-30 transition-opacity"
+          >
+            <Undo2 className="w-5 h-5 text-foreground" />
+          </button>
+          {/* Boost button */}
+          <button
+            onClick={() => setShowBoost(true)}
+            className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center shadow-glow"
+          >
+            <Zap className="w-5 h-5 text-primary-foreground" fill="currentColor" />
+          </button>
         </div>
       </div>
 
@@ -118,7 +171,6 @@ export default function DiscoverPage() {
           </motion.div>
         ) : currentProfile ? (
           <div className="relative w-full h-full flex items-center justify-center px-2">
-            {/* Next card behind (static preview) */}
             {nextProfile && (
               <div className="absolute inset-x-0 mx-auto w-full max-w-[380px] aspect-[2.8/4.5] rounded-2xl overflow-hidden shadow-card opacity-50 scale-[0.92]">
                 <div className="absolute inset-0 bg-secondary">
@@ -154,6 +206,17 @@ export default function DiscoverPage() {
       </div>
 
       <BottomNav />
+
+      {/* Match popup */}
+      <MatchPopup
+        isOpen={showMatch}
+        matchedProfile={matchedProfile}
+        myProfile={myProfile || null}
+        onClose={() => setShowMatch(false)}
+      />
+
+      {/* Boost modal */}
+      <BoostModal isOpen={showBoost} onClose={() => setShowBoost(false)} />
     </div>
   );
 }
