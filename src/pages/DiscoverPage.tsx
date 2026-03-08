@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -7,7 +7,7 @@ import ProfileCard from "@/components/ProfileCard";
 import BottomNav from "@/components/BottomNav";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles } from "lucide-react";
+import { Flame, SlidersHorizontal } from "lucide-react";
 import type { Profile } from "@/hooks/useProfile";
 
 export default function DiscoverPage() {
@@ -21,14 +21,12 @@ export default function DiscoverPage() {
     queryFn: async () => {
       if (!user) return [];
 
-      // Get already liked/passed user IDs
       const { data: likedData } = await supabase
         .from("likes")
         .select("liked_id")
         .eq("liker_id", user.id);
       const likedIds = (likedData || []).map((l) => l.liked_id);
 
-      // Get blocked user IDs
       const { data: blockedData } = await supabase
         .from("blocked_users")
         .select("blocked_id")
@@ -45,7 +43,6 @@ export default function DiscoverPage() {
         .not("user_id", "in", `(${excludeIds.join(",")})`)
         .limit(50);
 
-      // Filter by preference
       if (myProfile?.preference && myProfile.preference !== "everyone") {
         query = query.eq("gender", myProfile.preference);
       }
@@ -62,10 +59,8 @@ export default function DiscoverPage() {
       const { error } = await supabase
         .from("likes")
         .insert({ liker_id: user!.id, liked_id: likedId });
-      // Ignore duplicate like (409)
       if (error && error.code !== "23505") throw error;
 
-      // Check if match was created
       const { data: match } = await supabase
         .from("matches")
         .select("*")
@@ -73,23 +68,13 @@ export default function DiscoverPage() {
         .maybeSingle();
 
       if (match) {
-        toast("🎉 It's a match!", {
-          description: "You can now start chatting!",
+        toast("🎉 It's a Match!", {
+          description: "You and this person liked each other!",
         });
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["matches"] });
-    },
-  });
-
-  const friendRequestMutation = useMutation({
-    mutationFn: async (receiverId: string) => {
-      const { error } = await supabase
-        .from("friend_requests")
-        .insert({ sender_id: user!.id, receiver_id: receiverId });
-      if (error) throw error;
-      toast.success("Friend request sent! 👋");
     },
   });
 
@@ -104,43 +89,66 @@ export default function DiscoverPage() {
     setCurrentIndex((i) => i + 1);
   };
 
-  const handleFriendRequest = () => {
+  const handleSuperLike = () => {
     if (profiles[currentIndex]) {
-      friendRequestMutation.mutate(profiles[currentIndex].user_id);
+      likeMutation.mutate(profiles[currentIndex].user_id);
+      toast("⭐ Super Like sent!");
       setCurrentIndex((i) => i + 1);
     }
   };
 
   const currentProfile = profiles[currentIndex];
+  const nextProfile = profiles[currentIndex + 1];
 
   return (
-    <div className="min-h-screen pb-20">
-      {/* Header */}
-      <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border px-4 py-3">
-        <h1 className="text-xl font-heading font-bold text-gradient">Discover</h1>
+    <div className="min-h-screen pb-20 bg-background">
+      {/* Tinder-style header */}
+      <div className="sticky top-0 z-40 bg-background px-5 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Flame className="w-7 h-7 text-primary" />
+          <h1 className="text-2xl font-heading font-bold text-gradient">Connectly</h1>
+        </div>
       </div>
 
-      <div className="p-4 flex items-center justify-center min-h-[calc(100vh-8rem)]">
+      <div className="relative flex items-center justify-center" style={{ height: "calc(100vh - 140px)" }}>
         {isLoading ? (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
-            <Sparkles className="w-8 h-8 text-primary animate-spin mx-auto mb-3" />
-            <p className="text-muted-foreground">Finding people near you...</p>
+            <Flame className="w-12 h-12 text-primary animate-pulse mx-auto mb-4" />
+            <p className="text-muted-foreground text-sm">Finding people near you...</p>
           </motion.div>
         ) : currentProfile ? (
-          <AnimatePresence mode="wait">
-            <ProfileCard
-              key={currentProfile.id}
-              profile={currentProfile}
-              onLike={handleLike}
-              onPass={handlePass}
-              onFriendRequest={handleFriendRequest}
-            />
-          </AnimatePresence>
+          <div className="relative w-full h-full flex items-center justify-center px-2">
+            {/* Next card behind (static preview) */}
+            {nextProfile && (
+              <div className="absolute inset-x-0 mx-auto w-full max-w-[380px] aspect-[2.8/4.5] rounded-2xl overflow-hidden shadow-card opacity-50 scale-[0.92]">
+                <div className="absolute inset-0 bg-secondary">
+                  {nextProfile.avatar_url && (
+                    <img src={nextProfile.avatar_url} alt="" className="w-full h-full object-cover" draggable={false} />
+                  )}
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+              </div>
+            )}
+
+            <AnimatePresence mode="popLayout">
+              <ProfileCard
+                key={currentProfile.id}
+                profile={currentProfile}
+                onLike={handleLike}
+                onPass={handlePass}
+                onSuperLike={handleSuperLike}
+              />
+            </AnimatePresence>
+          </div>
         ) : (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
-            <div className="text-5xl mb-4">🌟</div>
-            <h3 className="text-lg font-heading font-semibold">No more profiles</h3>
-            <p className="text-muted-foreground text-sm mt-1">Check back later for new people!</p>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center px-8">
+            <div className="w-24 h-24 rounded-full bg-secondary flex items-center justify-center mx-auto mb-5">
+              <Flame className="w-12 h-12 text-muted-foreground" />
+            </div>
+            <h3 className="text-xl font-heading font-bold">No more profiles</h3>
+            <p className="text-muted-foreground text-sm mt-2 leading-relaxed">
+              You've seen everyone nearby. Check back later for new people!
+            </p>
           </motion.div>
         )}
       </div>
