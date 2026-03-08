@@ -294,6 +294,25 @@ export default function ChatConversationPage() {
         onSubmit={handleSend}
         className="flex items-center gap-2 p-4 bg-card/90 backdrop-blur-xl border-t border-border"
       >
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handlePhotoUpload}
+        />
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploadingPhoto}
+          className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+        >
+          {uploadingPhoto ? (
+            <Loader2 className="w-5 h-5 animate-spin" />
+          ) : (
+            <ImagePlus className="w-5 h-5" />
+          )}
+        </button>
         <Input
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
