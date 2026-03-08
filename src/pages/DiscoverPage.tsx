@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
 import ProfileCard from "@/components/ProfileCard";
 import BottomNav from "@/components/BottomNav";
+import StoriesBar from "@/components/StoriesBar";
 import MatchPopup from "@/components/MatchPopup";
 import BoostModal from "@/components/BoostModal";
 import PageTransition from "@/components/PageTransition";
@@ -117,7 +118,10 @@ export default function DiscoverPage() {
         </div>
       </div>
 
-      <div className="relative flex items-center justify-center" style={{ height: "calc(100vh - 140px)" }}>
+      {/* Stories */}
+      <StoriesBar />
+
+      <div className="relative flex items-center justify-center" style={{ height: "calc(100vh - 230px)" }}>
         {isLoading ? (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
             <Sparkles className="w-8 h-8 text-primary animate-pulse mx-auto mb-3" />

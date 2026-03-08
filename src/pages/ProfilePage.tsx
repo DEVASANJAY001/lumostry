@@ -7,7 +7,7 @@ import PageTransition from "@/components/PageTransition";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { Settings, Edit, Camera, Users, ChevronRight, Wallet, Image, CheckCircle } from "lucide-react";
+import { Settings, Edit, Camera, Users, ChevronRight, Wallet, Image, CheckCircle, Eye } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 
@@ -62,6 +62,7 @@ export default function ProfilePage() {
     }] : []),
     { icon: Edit, label: "Edit Profile", onClick: () => navigate("/edit-profile") },
     { icon: Image, label: "My Gallery", onClick: () => navigate("/my-gallery") },
+    { icon: Eye, label: "Profile Visitors", onClick: () => navigate("/profile-visitors") },
     { icon: Wallet, label: `Wallet · ${walletBalance} pts`, onClick: () => navigate("/wallet") },
     ...(!profile?.is_verified ? [{ icon: CheckCircle, label: "Verify Profile", onClick: () => navigate("/verify") }] : []),
   ];
