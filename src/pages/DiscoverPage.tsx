@@ -10,11 +10,13 @@ import BoostModal from "@/components/BoostModal";
 import PageTransition from "@/components/PageTransition";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Undo2, Zap } from "lucide-react";
+import { Sparkles, Undo2, Zap, Heart } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import type { Profile } from "@/hooks/useProfile";
 
 export default function DiscoverPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { data: myProfile } = useProfile();
   const queryClient = useQueryClient();
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -99,6 +101,12 @@ export default function DiscoverPage() {
       <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl px-5 py-3 flex items-center justify-between">
         <h1 className="text-xl font-heading font-semibold text-gradient tracking-tight">Lumos</h1>
         <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => navigate("/who-liked-me")}
+            className="w-9 h-9 rounded-full bg-rose-500/10 flex items-center justify-center active:scale-90 transition-all"
+          >
+            <Heart className="w-4 h-4 text-rose-500" fill="currentColor" />
+          </button>
           <button
             onClick={handleRewind}
             disabled={!lastSwiped}
