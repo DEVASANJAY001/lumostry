@@ -4,9 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import ProfileCard from "@/components/ProfileCard";
 import BottomNav from "@/components/BottomNav";
+import PageTransition from "@/components/PageTransition";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Sparkles, Users } from "lucide-react";
+import { Search, Sparkles, Users, SlidersHorizontal, X, CheckCircle } from "lucide-react";
 import type { Profile } from "@/hooks/useProfile";
 
 type GenderFilter = "male" | "female" | "everyone";
@@ -17,32 +18,38 @@ const FILTER_OPTIONS: { value: GenderFilter; label: string; emoji: string }[] = 
   { value: "female", label: "Female", emoji: "👩" },
 ];
 
+const INTEREST_OPTIONS = [
+  "Travel", "Music", "Fitness", "Gaming", "Movies", "Cooking",
+  "Photography", "Reading", "Art", "Sports", "Dancing", "Nature",
+];
+
 export default function SearchPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [genderFilter, setGenderFilter] = useState<GenderFilter>("everyone");
+  const [showFilters, setShowFilters] = useState(false);
+  const [ageRange, setAgeRange] = useState<[number, number]>([18, 50]);
+  const [verifiedOnly, setVerifiedOnly] = useState(false);
+  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
 
   const { data: profiles = [], isLoading, refetch } = useQuery({
-    queryKey: ["search-profiles", user?.id, genderFilter],
+    queryKey: ["search-profiles", user?.id, genderFilter, ageRange, verifiedOnly, selectedInterests],
     queryFn: async () => {
       if (!user) return [];
 
-      // Get already liked/passed user IDs
       const { data: likedData } = await supabase
         .from("likes")
         .select("liked_id")
         .eq("liker_id", user.id);
       const likedIds = (likedData || []).map((l) => l.liked_id);
 
-      // Get blocked user IDs
       const { data: blockedData } = await supabase
         .from("blocked_users")
         .select("blocked_id")
         .eq("blocker_id", user.id);
       const blockedIds = (blockedData || []).map((b) => b.blocked_id);
 
-      // Get existing friend requests
       const { data: sentRequests } = await supabase
         .from("friend_requests")
         .select("receiver_id")
@@ -57,37 +64,59 @@ export default function SearchPage() {
         .eq("profile_complete", true)
         .not("avatar_url", "is", null)
         .not("user_id", "in", `(${excludeIds.join(",")})`)
+        .gte("age", ageRange[0])
+        .lte("age", ageRange[1])
         .limit(50);
 
       if (genderFilter !== "everyone") {
         query = query.eq("gender", genderFilter);
       }
 
+      if (verifiedOnly) {
+        query = query.eq("is_verified", true);
+      }
+
       const { data, error } = await query;
       if (error) throw error;
 
-      // Shuffle for random order
-      const shuffled = [...(data || [])].sort(() => Math.random() - 0.5);
-      return shuffled as Profile[];
+      let results = [...(data || [])] as Profile[];
+
+      // Client-side interest filter
+      if (selectedInterests.length > 0) {
+        results = results.filter(p =>
+          p.interests?.some(i => selectedInterests.includes(i))
+        );
+      }
+
+      // Shuffle
+      return results.sort(() => Math.random() - 0.5);
     },
     enabled: !!user,
   });
 
-  // Reset index when filter changes
   const handleFilterChange = (filter: GenderFilter) => {
     setGenderFilter(filter);
     setCurrentIndex(0);
   };
+
+  const toggleInterest = (interest: string) => {
+    setSelectedInterests(prev =>
+      prev.includes(interest)
+        ? prev.filter(i => i !== interest)
+        : [...prev, interest]
+    );
+  };
+
+  const activeFilterCount = (verifiedOnly ? 1 : 0) + selectedInterests.length +
+    (ageRange[0] !== 18 || ageRange[1] !== 50 ? 1 : 0);
 
   const likeMutation = useMutation({
     mutationFn: async (likedId: string) => {
       const { error } = await supabase
         .from("likes")
         .insert({ liker_id: user!.id, liked_id: likedId });
-      // Ignore duplicate like (409)
       if (error && error.code !== "23505") throw error;
 
-      // Check if match
       const { data: match } = await supabase
         .from("matches")
         .select("*")
@@ -95,9 +124,7 @@ export default function SearchPage() {
         .maybeSingle();
 
       if (match) {
-        toast("🎉 It's a match!", {
-          description: "You both liked each other! Start chatting now.",
-        });
+        toast("🎉 It's a match!", { description: "You both liked each other! Start chatting now." });
       } else {
         toast.success("Liked! 💕");
       }
@@ -121,12 +148,25 @@ export default function SearchPage() {
   const currentProfile = profiles[currentIndex];
 
   return (
-    <div className="min-h-screen pb-20">
+    <PageTransition className="min-h-screen pb-20">
       {/* Header */}
       <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border px-4 py-3">
         <div className="flex items-center gap-2 mb-3">
           <Search className="w-5 h-5 text-primary" />
-          <h1 className="text-xl font-heading font-bold text-gradient">Search</h1>
+          <h1 className="text-xl font-heading font-bold text-gradient flex-1">Search</h1>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`relative w-9 h-9 rounded-full flex items-center justify-center transition-all ${
+              showFilters ? "gradient-primary text-primary-foreground shadow-glow" : "bg-secondary text-muted-foreground"
+            }`}
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            {activeFilterCount > 0 && !showFilters && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full gradient-primary text-[9px] text-primary-foreground font-bold flex items-center justify-center">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
         </div>
 
         {/* Gender Filter Tabs */}
@@ -148,6 +188,121 @@ export default function SearchPage() {
         </div>
       </div>
 
+      {/* Advanced Filters Panel */}
+      <AnimatePresence>
+        {showFilters && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="overflow-hidden border-b border-border bg-card/50"
+          >
+            <div className="p-4 space-y-5">
+              {/* Age Range */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium">Age Range</label>
+                  <span className="text-xs text-muted-foreground">{ageRange[0]} – {ageRange[1]}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="range"
+                    min={18}
+                    max={50}
+                    value={ageRange[0]}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      setAgeRange([Math.min(val, ageRange[1] - 1), ageRange[1]]);
+                    }}
+                    className="flex-1 accent-primary h-1"
+                  />
+                  <input
+                    type="range"
+                    min={18}
+                    max={50}
+                    value={ageRange[1]}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      setAgeRange([ageRange[0], Math.max(val, ageRange[0] + 1)]);
+                    }}
+                    className="flex-1 accent-primary h-1"
+                  />
+                </div>
+              </div>
+
+              {/* Verified Only */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-medium">Verified profiles only</span>
+                </div>
+                <button
+                  onClick={() => setVerifiedOnly(!verifiedOnly)}
+                  className={`w-11 h-6 rounded-full transition-all relative ${
+                    verifiedOnly ? "gradient-primary" : "bg-secondary"
+                  }`}
+                >
+                  <motion.div
+                    className="w-5 h-5 rounded-full bg-primary-foreground shadow-card absolute top-0.5"
+                    animate={{ left: verifiedOnly ? 22 : 2 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                  />
+                </button>
+              </div>
+
+              {/* Interests */}
+              <div>
+                <label className="text-sm font-medium mb-2 block">Filter by interests</label>
+                <div className="flex flex-wrap gap-2">
+                  {INTEREST_OPTIONS.map((interest) => {
+                    const selected = selectedInterests.includes(interest);
+                    return (
+                      <button
+                        key={interest}
+                        onClick={() => toggleInterest(interest)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                          selected
+                            ? "gradient-primary text-primary-foreground shadow-glow"
+                            : "bg-secondary text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {interest}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Apply / Reset */}
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={() => {
+                    setAgeRange([18, 50]);
+                    setVerifiedOnly(false);
+                    setSelectedInterests([]);
+                    setCurrentIndex(0);
+                  }}
+                  className="flex-1 py-2.5 rounded-xl bg-secondary text-sm font-medium text-muted-foreground"
+                >
+                  Reset
+                </button>
+                <button
+                  onClick={() => {
+                    setCurrentIndex(0);
+                    setShowFilters(false);
+                    refetch();
+                  }}
+                  className="flex-1 py-2.5 rounded-xl gradient-primary text-primary-foreground text-sm font-medium shadow-glow"
+                >
+                  Apply Filters
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="p-4 flex items-center justify-center min-h-[calc(100vh-12rem)]">
         {isLoading ? (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
@@ -168,7 +323,7 @@ export default function SearchPage() {
             <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-heading font-semibold">No more profiles</h3>
             <p className="text-muted-foreground text-sm mt-1">
-              Try a different filter or check back later!
+              {activeFilterCount > 0 ? "Try adjusting your filters" : "Check back later!"}
             </p>
             <button
               onClick={() => { setCurrentIndex(0); refetch(); }}
@@ -180,20 +335,15 @@ export default function SearchPage() {
         )}
       </div>
 
-      {/* Swipe hint */}
       {currentProfile && (
         <div className="fixed bottom-20 left-0 right-0 flex justify-center pointer-events-none">
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.5 }}
-            className="text-xs text-muted-foreground"
-          >
-            ← Swipe left to skip · Swipe right to send request →
+          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 0.5 }} className="text-xs text-muted-foreground">
+            ← Swipe left to skip · Swipe right to like →
           </motion.p>
         </div>
       )}
 
       <BottomNav />
-    </div>
+    </PageTransition>
   );
 }

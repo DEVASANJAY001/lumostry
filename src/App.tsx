@@ -23,6 +23,7 @@ import TermsPage from "./pages/TermsPage";
 import SearchPage from "./pages/SearchPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import WalletPage from "./pages/WalletPage";
+import NotificationsPage from "./pages/NotificationsPage";
 import MyGalleryPage from "./pages/MyGalleryPage";
 import UserGalleryPage from "./pages/UserGalleryPage";
 import NotFound from "./pages/NotFound";
@@ -79,6 +80,7 @@ function AppRoutes() {
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/onboarding" element={<OnboardingPage />} />
       <Route path="/wallet" element={<WalletPage />} />
+      <Route path="/notifications" element={<NotificationsPage />} />
       <Route path="/my-gallery" element={<MyGalleryPage />} />
       <Route path="/gallery/:userId" element={<UserGalleryPage />} />
       <Route path="*" element={<NotFound />} />
