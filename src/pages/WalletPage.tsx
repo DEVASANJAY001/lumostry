@@ -104,7 +104,7 @@ export default function WalletPage() {
         key: orderData.key_id,
         amount: orderData.amount,
         currency: orderData.currency,
-        name: "Connectly",
+        name: "Lumos",
         description: `${orderData.package_name} - ${orderData.points} Points`,
         order_id: orderData.order_id,
         handler: async (response: any) => {
