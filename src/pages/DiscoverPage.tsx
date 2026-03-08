@@ -41,6 +41,7 @@ export default function DiscoverPage() {
         .from("profiles")
         .select("*")
         .eq("profile_complete", true)
+        .not("avatar_url", "is", null)
         .not("user_id", "in", `(${excludeIds.join(",")})`)
         .limit(50);
 

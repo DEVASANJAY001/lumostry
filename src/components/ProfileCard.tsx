@@ -1,6 +1,8 @@
 import { motion } from "framer-motion";
-import { Heart, X, UserPlus } from "lucide-react";
+import { Heart, X, UserPlus, CheckCircle } from "lucide-react";
 import type { Profile } from "@/hooks/useProfile";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 interface ProfileCardProps {
   profile: Profile;
@@ -10,6 +12,14 @@ interface ProfileCardProps {
 }
 
 export default function ProfileCard({ profile, onLike, onPass, onFriendRequest }: ProfileCardProps) {
+  const navigate = useNavigate();
+  const [photoIndex, setPhotoIndex] = useState(0);
+
+  const allPhotos = [
+    ...(profile.avatar_url ? [profile.avatar_url] : []),
+    ...(profile.photos || []),
+  ];
+
   return (
     <motion.div
       className="relative w-full aspect-[3/4] rounded-3xl overflow-hidden shadow-card"
@@ -20,12 +30,32 @@ export default function ProfileCard({ profile, onLike, onPass, onFriendRequest }
     >
       {/* Photo */}
       <div className="absolute inset-0 bg-secondary">
-        {profile.avatar_url ? (
-          <img
-            src={profile.avatar_url}
-            alt={profile.name}
-            className="w-full h-full object-cover"
-          />
+        {allPhotos.length > 0 ? (
+          <>
+            <img
+              src={allPhotos[photoIndex]}
+              alt={profile.name}
+              className="w-full h-full object-cover"
+            />
+            {/* Photo indicators */}
+            {allPhotos.length > 1 && (
+              <div className="absolute top-3 left-3 right-3 flex gap-1 z-10">
+                {allPhotos.map((_, i) => (
+                  <div
+                    key={i}
+                    className={`h-0.5 flex-1 rounded-full transition-all ${
+                      i === photoIndex ? "bg-primary-foreground" : "bg-primary-foreground/30"
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
+            {/* Tap zones for photos */}
+            <div className="absolute inset-0 flex z-10" style={{ bottom: "120px" }}>
+              <div className="flex-1" onClick={() => setPhotoIndex(Math.max(0, photoIndex - 1))} />
+              <div className="flex-1" onClick={() => setPhotoIndex(Math.min(allPhotos.length - 1, photoIndex + 1))} />
+            </div>
+          </>
         ) : (
           <div className="w-full h-full flex items-center justify-center text-6xl">
             {profile.gender === "female" ? "👩" : profile.gender === "male" ? "👨" : "🧑"}
@@ -37,11 +67,17 @@ export default function ProfileCard({ profile, onLike, onPass, onFriendRequest }
       <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
 
       {/* Info */}
-      <div className="absolute bottom-0 left-0 right-0 p-5 pb-24">
-        <h3 className="text-2xl font-heading font-bold">
-          {profile.name || profile.username}
-          {profile.age && <span className="text-lg font-normal text-muted-foreground ml-2">{profile.age}</span>}
-        </h3>
+      <div
+        className="absolute bottom-0 left-0 right-0 p-5 pb-24 cursor-pointer"
+        onClick={() => navigate(`/user/${profile.user_id}`)}
+      >
+        <div className="flex items-center gap-2">
+          <h3 className="text-2xl font-heading font-bold">
+            {profile.name || profile.username}
+          </h3>
+          {profile.age && <span className="text-lg text-muted-foreground">{profile.age}</span>}
+          {profile.is_verified && <CheckCircle className="w-5 h-5 text-primary" />}
+        </div>
         {profile.bio && (
           <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{profile.bio}</p>
         )}
@@ -57,7 +93,7 @@ export default function ProfileCard({ profile, onLike, onPass, onFriendRequest }
       </div>
 
       {/* Action buttons */}
-      <div className="absolute bottom-5 left-0 right-0 flex items-center justify-center gap-4">
+      <div className="absolute bottom-5 left-0 right-0 flex items-center justify-center gap-4 z-20">
         <button
           onClick={onPass}
           className="w-14 h-14 rounded-full bg-card border border-border flex items-center justify-center hover:bg-destructive/10 hover:border-destructive transition-all active:scale-90"

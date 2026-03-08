@@ -141,13 +141,16 @@ export type Database = {
           id: string
           interests: string[] | null
           is_online: boolean | null
+          is_verified: boolean | null
           last_seen: string | null
           name: string
+          photos: string[] | null
           preference: Database["public"]["Enums"]["preference_type"] | null
           profile_complete: boolean | null
           updated_at: string
           user_id: string
           username: string | null
+          verification_photo_url: string | null
         }
         Insert: {
           age?: number | null
@@ -158,13 +161,16 @@ export type Database = {
           id?: string
           interests?: string[] | null
           is_online?: boolean | null
+          is_verified?: boolean | null
           last_seen?: string | null
           name?: string
+          photos?: string[] | null
           preference?: Database["public"]["Enums"]["preference_type"] | null
           profile_complete?: boolean | null
           updated_at?: string
           user_id: string
           username?: string | null
+          verification_photo_url?: string | null
         }
         Update: {
           age?: number | null
@@ -175,13 +181,16 @@ export type Database = {
           id?: string
           interests?: string[] | null
           is_online?: boolean | null
+          is_verified?: boolean | null
           last_seen?: string | null
           name?: string
+          photos?: string[] | null
           preference?: Database["public"]["Enums"]["preference_type"] | null
           profile_complete?: boolean | null
           updated_at?: string
           user_id?: string
           username?: string | null
+          verification_photo_url?: string | null
         }
         Relationships: []
       }

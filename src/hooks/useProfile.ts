@@ -12,8 +12,11 @@ export type Profile = {
   preference: "male" | "female" | "everyone" | null;
   bio: string | null;
   avatar_url: string | null;
+  photos: string[] | null;
   interests: string[] | null;
   is_online: boolean | null;
+  is_verified: boolean | null;
+  verification_photo_url: string | null;
   last_seen: string | null;
   profile_complete: boolean | null;
   created_at: string;
