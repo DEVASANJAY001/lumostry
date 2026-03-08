@@ -3,7 +3,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
-import { ArrowLeft, Lock, Unlock, Wallet, X } from "lucide-react";
+import { ArrowLeft, Lock, Unlock, Wallet } from "lucide-react";
+import Lightbox from "@/components/Lightbox";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -171,26 +172,7 @@ export default function UserGalleryPage() {
         )}
       </div>
 
-      {/* Fullscreen Lightbox */}
-      {viewPhoto && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 bg-background/95 backdrop-blur-xl flex items-center justify-center"
-          onClick={() => setViewPhoto(null)}
-        >
-          <button className="absolute top-4 right-4 w-10 h-10 rounded-full bg-card border border-border flex items-center justify-center z-10">
-            <X className="w-5 h-5" />
-          </button>
-          <img
-            src={viewPhoto}
-            alt=""
-            className="max-w-full max-h-full object-contain p-4"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </motion.div>
-      )}
+      {viewPhoto && <Lightbox src={viewPhoto} onClose={() => setViewPhoto(null)} />}
     </div>
   );
 }
