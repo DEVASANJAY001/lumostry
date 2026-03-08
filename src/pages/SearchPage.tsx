@@ -155,13 +155,12 @@ export default function SearchPage() {
             <p className="text-muted-foreground">Searching for people...</p>
           </motion.div>
         ) : currentProfile ? (
-          <AnimatePresence mode="wait">
+          <AnimatePresence mode="popLayout">
             <ProfileCard
               key={currentProfile.id}
               profile={currentProfile}
               onLike={handleLike}
               onPass={handlePass}
-              swipeable
             />
           </AnimatePresence>
         ) : (
