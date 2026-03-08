@@ -84,7 +84,8 @@ export default function SearchPage() {
       const { error } = await supabase
         .from("likes")
         .insert({ liker_id: user!.id, liked_id: likedId });
-      if (error) throw error;
+      // Ignore duplicate like (409)
+      if (error && error.code !== "23505") throw error;
 
       // Check if match
       const { data: match } = await supabase
@@ -98,9 +99,7 @@ export default function SearchPage() {
           description: "You both liked each other! Start chatting now.",
         });
       } else {
-        toast.success("Request sent! 💕", {
-          description: "They'll be notified. If they like you back, it's a match!",
-        });
+        toast.success("Liked! 💕");
       }
     },
     onSuccess: () => {

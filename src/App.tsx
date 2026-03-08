@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import AuthPage from "./pages/AuthPage";
 import OnboardingPage from "./pages/OnboardingPage";
 import DiscoverPage from "./pages/DiscoverPage";
@@ -19,6 +20,7 @@ import ViewProfilePage from "./pages/ViewProfilePage";
 import FriendRequestsPage from "./pages/FriendRequestsPage";
 import TermsPage from "./pages/TermsPage";
 import SearchPage from "./pages/SearchPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import NotFound from "./pages/NotFound";
 import { Sparkles } from "lucide-react";
 
@@ -27,6 +29,7 @@ const queryClient = new QueryClient();
 function AppRoutes() {
   const { user, loading } = useAuth();
   const { data: profile, isLoading: profileLoading } = useProfile();
+  useOnlineStatus();
 
   if (loading || (user && profileLoading)) {
     return (
@@ -39,6 +42,7 @@ function AppRoutes() {
   if (!user) {
     return (
       <Routes>
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="*" element={<AuthPage />} />
       </Routes>
     );
@@ -68,6 +72,7 @@ function AppRoutes() {
       <Route path="/user/:userId" element={<ViewProfilePage />} />
       <Route path="/friend-requests" element={<FriendRequestsPage />} />
       <Route path="/terms" element={<TermsPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/onboarding" element={<OnboardingPage />} />
       <Route path="*" element={<NotFound />} />
     </Routes>

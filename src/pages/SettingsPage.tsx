@@ -1,18 +1,42 @@
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import {
   ArrowLeft, Edit, LogOut, Shield, Bell, Eye, HelpCircle, Heart,
-  CheckCircle, ChevronRight, Camera,
+  CheckCircle, ChevronRight, Camera, Trash2, Sparkles,
 } from "lucide-react";
 
 export default function SettingsPage() {
   const { signOut, user } = useAuth();
   const { data: profile } = useProfile();
   const navigate = useNavigate();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+      
+      const res = await supabase.functions.invoke("delete-account");
+      if (res.error) throw res.error;
+      
+      await signOut();
+      toast.success("Account deleted. We're sorry to see you go 😢");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete account");
+    } finally {
+      setDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  };
 
   const menuItems = [
     {
@@ -124,7 +148,7 @@ export default function SettingsPage() {
         ))}
 
         {/* Sign out */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="space-y-2">
           <Button
             variant="outline"
             onClick={signOut}
@@ -132,12 +156,60 @@ export default function SettingsPage() {
           >
             <LogOut className="w-4 h-4 mr-2" /> Sign Out
           </Button>
+          <Button
+            variant="ghost"
+            onClick={() => setShowDeleteConfirm(true)}
+            className="w-full h-10 rounded-2xl text-destructive/60 hover:text-destructive text-xs"
+          >
+            <Trash2 className="w-3 h-3 mr-1" /> Delete Account
+          </Button>
         </motion.div>
 
         <p className="text-center text-xs text-muted-foreground pb-4">
           Connectly v1.0 • Made with 💖
         </p>
       </div>
+
+      {/* Delete Account Confirmation */}
+      {showDeleteConfirm && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setShowDeleteConfirm(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-sm rounded-2xl bg-card border border-destructive/30 p-6 shadow-card"
+          >
+            <div className="text-center mb-4">
+              <Trash2 className="w-12 h-12 text-destructive mx-auto mb-3" />
+              <h2 className="text-lg font-heading font-bold">Delete Account?</h2>
+              <p className="text-sm text-muted-foreground mt-2">
+                This will permanently delete your profile, matches, messages, and all data. This action cannot be undone.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 rounded-xl"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleDeleteAccount}
+                disabled={deleting}
+                className="flex-1 rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleting ? <Sparkles className="w-4 h-4 animate-spin" /> : "Delete Forever"}
+              </Button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
 
       <BottomNav />
     </div>

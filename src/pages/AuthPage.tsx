@@ -14,6 +14,8 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [agreedTerms, setAgreedTerms] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,6 +35,26 @@ export default function AuthPage() {
         if (error) throw error;
         toast.success("Account created! Welcome to Connectly 💖");
       }
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!forgotEmail) {
+      toast.error("Please enter your email");
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      toast.success("Check your email for the reset link! 📧");
+      setShowForgot(false);
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -137,6 +159,16 @@ export default function AuthPage() {
                 )}
               </Button>
 
+              {isLogin && (
+                <button
+                  type="button"
+                  onClick={() => setShowForgot(true)}
+                  className="text-xs text-primary hover:underline w-full text-center"
+                >
+                  Forgot password?
+                </button>
+              )}
+
               {!isLogin && (
                 <div className="flex items-start gap-2 mt-1">
                   <input
@@ -213,6 +245,43 @@ export default function AuthPage() {
                 className="w-full mt-4 gradient-primary text-primary-foreground rounded-xl"
               >
                 I Agree
+              </Button>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* Forgot Password Modal */}
+        {showForgot && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => setShowForgot(false)}
+          >
+            <motion.div
+              initial={{ y: 50, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-sm rounded-2xl bg-card border border-border p-6 shadow-card"
+            >
+              <h2 className="text-lg font-heading font-bold mb-2">Reset Password</h2>
+              <p className="text-sm text-muted-foreground mb-4">Enter your email and we'll send you a reset link.</p>
+              <div className="relative mb-4">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  type="email"
+                  placeholder="Your email"
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  className="pl-10 bg-secondary border-border"
+                />
+              </div>
+              <Button
+                onClick={handleForgotPassword}
+                disabled={loading}
+                className="w-full gradient-primary text-primary-foreground rounded-xl"
+              >
+                {loading ? <Sparkles className="w-4 h-4 animate-spin" /> : "Send Reset Link"}
               </Button>
             </motion.div>
           </motion.div>

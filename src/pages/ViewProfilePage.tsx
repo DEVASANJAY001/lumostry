@@ -30,12 +30,26 @@ export default function ViewProfilePage() {
     enabled: !!userId,
   });
 
+  const { data: isMatched } = useQuery({
+    queryKey: ["is-matched", user?.id, userId],
+    queryFn: async () => {
+      if (!user || !userId) return false;
+      const { data } = await supabase
+        .from("matches")
+        .select("id")
+        .or(`and(user1_id.eq.${user.id},user2_id.eq.${userId}),and(user1_id.eq.${userId},user2_id.eq.${user.id})`)
+        .maybeSingle();
+      return !!data;
+    },
+    enabled: !!user && !!userId,
+  });
+
   const likeMutation = useMutation({
     mutationFn: async () => {
       const { error } = await supabase
         .from("likes")
         .insert({ liker_id: user!.id, liked_id: userId! });
-      if (error) throw error;
+      if (error && error.code !== "23505") throw error;
       toast.success("Liked! 💖");
     },
   });
@@ -190,13 +204,19 @@ export default function ViewProfilePage() {
             </div>
 
             <div className="flex gap-3">
-              <Button
-                onClick={() => navigate(`/chat/${userId}`)}
-                variant="secondary"
-                className="flex-1 h-12 rounded-xl"
-              >
-                <MessageCircle className="w-4 h-4 mr-2" /> Message
-              </Button>
+              {isMatched ? (
+                <Button
+                  onClick={() => navigate(`/chat/${userId}`)}
+                  variant="secondary"
+                  className="flex-1 h-12 rounded-xl"
+                >
+                  <MessageCircle className="w-4 h-4 mr-2" /> Message
+                </Button>
+              ) : (
+                <div className="flex-1 text-center py-3 rounded-xl bg-secondary text-muted-foreground text-sm">
+                  Match to unlock chat 💬
+                </div>
+              )}
               <Button
                 onClick={() => blockMutation.mutate()}
                 variant="outline"

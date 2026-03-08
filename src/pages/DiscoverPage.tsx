@@ -62,9 +62,10 @@ export default function DiscoverPage() {
       const { error } = await supabase
         .from("likes")
         .insert({ liker_id: user!.id, liked_id: likedId });
-      if (error) throw error;
+      // Ignore duplicate like (409)
+      if (error && error.code !== "23505") throw error;
 
-      // Check if match
+      // Check if match was created
       const { data: match } = await supabase
         .from("matches")
         .select("*")
