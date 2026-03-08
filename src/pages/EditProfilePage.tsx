@@ -121,7 +121,8 @@ export default function EditProfilePage() {
         username: form.username,
         age: form.age ? parseInt(form.age) : null,
         bio: form.bio,
-        gender: form.gender || null,
+        // Only set gender if not already set (locked after first save)
+        ...(profile?.gender ? {} : { gender: form.gender || null }),
         preference: form.preference || null,
         interests: form.interests,
         avatar_url,
@@ -266,24 +267,39 @@ export default function EditProfilePage() {
           <p className="text-xs text-muted-foreground mt-1 text-right">{form.bio.length}/300</p>
         </motion.div>
 
-        {/* Gender */}
+        {/* Gender - locked after first selection */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <label className="text-sm font-medium mb-2 block">I am</label>
-          <div className="grid grid-cols-2 gap-2">
-            {GENDERS.map((g) => (
-              <button
-                key={g.value}
-                onClick={() => setForm({ ...form, gender: g.value })}
-                className={`p-3 rounded-xl border text-sm font-medium transition-all ${
-                  form.gender === g.value
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-border bg-secondary text-foreground hover:border-primary/50"
-                }`}
-              >
-                <span className="mr-1">{g.icon}</span> {g.label}
-              </button>
-            ))}
+          <div className="flex items-center gap-2 mb-2">
+            <label className="text-sm font-medium">I am</label>
+            {profile?.gender && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground flex items-center gap-1">
+                🔒 Locked
+              </span>
+            )}
           </div>
+          {profile?.gender ? (
+            <div className="p-3 rounded-xl border border-primary bg-primary/10 text-primary text-sm font-medium">
+              <span className="mr-1">{GENDERS.find(g => g.value === profile.gender)?.icon}</span>
+              {GENDERS.find(g => g.value === profile.gender)?.label}
+              <p className="text-[10px] text-muted-foreground mt-1 font-normal">Gender cannot be changed after selection for safety reasons.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              {GENDERS.map((g) => (
+                <button
+                  key={g.value}
+                  onClick={() => setForm({ ...form, gender: g.value })}
+                  className={`p-3 rounded-xl border text-sm font-medium transition-all ${
+                    form.gender === g.value
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border bg-secondary text-foreground hover:border-primary/50"
+                  }`}
+                >
+                  <span className="mr-1">{g.icon}</span> {g.label}
+                </button>
+              ))}
+            </div>
+          )}
         </motion.div>
 
         {/* Preference */}
