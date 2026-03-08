@@ -59,6 +59,33 @@ export type Database = {
         }
         Relationships: []
       }
+      gallery_photos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          photo_url: string
+          points_required: number
+          user_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          photo_url: string
+          points_required?: number
+          user_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          photo_url?: string
+          points_required?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       likes: {
         Row: {
           created_at: string
@@ -128,6 +155,71 @@ export type Database = {
           message_type?: string
           receiver_id?: string
           sender_id?: string
+        }
+        Relationships: []
+      }
+      photo_unlocks: {
+        Row: {
+          created_at: string
+          id: string
+          photo_id: string
+          points_spent: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          photo_id: string
+          points_spent?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          photo_id?: string
+          points_spent?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "photo_unlocks_photo_id_fkey"
+            columns: ["photo_id"]
+            isOneToOne: false
+            referencedRelation: "gallery_photos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      point_packages: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          offer_label: string | null
+          points: number
+          price_inr: number
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          offer_label?: string | null
+          points: number
+          price_inr: number
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          offer_label?: string | null
+          points?: number
+          price_inr?: number
+          sort_order?: number
         }
         Relationships: []
       }
@@ -221,6 +313,57 @@ export type Database = {
           reason?: string
           reported_id?: string
           reporter_id?: string
+        }
+        Relationships: []
+      }
+      transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          id: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      wallets: {
+        Row: {
+          balance: number
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
