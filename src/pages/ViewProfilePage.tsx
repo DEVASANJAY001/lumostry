@@ -3,12 +3,14 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
-import { ArrowLeft, Heart, UserPlus, Shield, CheckCircle, MessageCircle, Flag, Image } from "lucide-react";
+import { ArrowLeft, Heart, UserPlus, Shield, MessageCircle, Flag, Image } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import type { Profile } from "@/hooks/useProfile";
 import { useState } from "react";
 import ReportUserModal from "@/components/ReportUserModal";
+import PageTransition from "@/components/PageTransition";
+import VerifiedBadge from "@/components/VerifiedBadge";
 
 export default function ViewProfilePage() {
   const { userId } = useParams<{ userId: string }>();
@@ -87,33 +89,39 @@ export default function ViewProfilePage() {
   };
 
   return (
-    <div className="min-h-screen">
+    <PageTransition className="min-h-screen">
       {/* Photo carousel */}
       <div className="relative aspect-[3/4] max-h-[60vh]">
         <button
           onClick={() => navigate(-1)}
-          className="absolute top-4 left-4 z-20 w-10 h-10 rounded-full bg-background/50 backdrop-blur flex items-center justify-center"
+          className="absolute top-4 left-4 z-20 w-10 h-10 rounded-full bg-background/50 backdrop-blur-xl flex items-center justify-center shadow-card"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
 
         {allPhotos.length > 0 ? (
           <>
-            <img src={allPhotos[photoIndex]} alt="" className="w-full h-full object-cover" />
-            {/* Photo indicators */}
+            <motion.img
+              key={photoIndex}
+              src={allPhotos[photoIndex]}
+              alt=""
+              className="w-full h-full object-cover"
+              initial={{ opacity: 0.8 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.25 }}
+            />
             {allPhotos.length > 1 && (
               <div className="absolute top-4 left-16 right-4 flex gap-1 z-10">
                 {allPhotos.map((_, i) => (
                   <div
                     key={i}
-                    className={`h-0.5 flex-1 rounded-full transition-all ${
-                      i === photoIndex ? "bg-primary-foreground" : "bg-primary-foreground/30"
+                    className={`h-[3px] flex-1 rounded-full transition-all duration-300 ${
+                      i === photoIndex ? "bg-primary-foreground shadow-glow" : "bg-primary-foreground/25"
                     }`}
                   />
                 ))}
               </div>
             )}
-            {/* Tap zones */}
             <div className="absolute inset-0 flex z-10">
               <div className="flex-1" onClick={() => setPhotoIndex(Math.max(0, photoIndex - 1))} />
               <div className="flex-1" onClick={() => setPhotoIndex(Math.min(allPhotos.length - 1, photoIndex + 1))} />
@@ -128,7 +136,7 @@ export default function ViewProfilePage() {
         <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent pointer-events-none" />
       </div>
 
-      {/* Profile info */}
+      {/* Profile info - glassmorphism card */}
       <div className="p-5 -mt-16 relative z-10">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <div className="flex items-center gap-2">
@@ -138,9 +146,7 @@ export default function ViewProfilePage() {
             {profile.age && (
               <span className="text-xl text-muted-foreground">{profile.age}</span>
             )}
-            {profile.is_verified && (
-              <CheckCircle className="w-6 h-6 text-primary" />
-            )}
+            {profile.is_verified && <VerifiedBadge size="md" />}
           </div>
 
           {profile.username && (
@@ -148,7 +154,7 @@ export default function ViewProfilePage() {
           )}
 
           <div className="flex items-center gap-2 mt-2">
-            <div className={`w-2 h-2 rounded-full ${profile.is_online ? "bg-success" : "bg-muted-foreground"}`} />
+            <div className={`w-2.5 h-2.5 rounded-full ${profile.is_online ? "bg-success animate-pulse" : "bg-muted-foreground"}`} />
             <span className="text-xs text-muted-foreground">
               {profile.is_online ? "Online now" : "Offline"}
             </span>
@@ -164,7 +170,9 @@ export default function ViewProfilePage() {
         {/* Bio */}
         {profile.bio && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
-            <p className="mt-4 text-sm text-muted-foreground leading-relaxed">{profile.bio}</p>
+            <div className="mt-4 p-4 rounded-2xl glass-card">
+              <p className="text-sm text-foreground/80 leading-relaxed">{profile.bio}</p>
+            </div>
           </motion.div>
         )}
 
@@ -174,9 +182,14 @@ export default function ViewProfilePage() {
             <h3 className="font-heading font-semibold text-sm mb-2">Interests</h3>
             <div className="flex flex-wrap gap-2">
               {profile.interests.map((i) => (
-                <span key={i} className="px-3 py-1 rounded-full text-xs bg-primary/10 text-primary font-medium">
+                <motion.span
+                  key={i}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="px-3.5 py-1.5 rounded-full text-xs bg-primary/10 text-primary font-medium border border-primary/20"
+                >
                   {i}
-                </span>
+                </motion.span>
               ))}
             </div>
           </motion.div>
@@ -189,7 +202,7 @@ export default function ViewProfilePage() {
               <Button
                 onClick={() => likeMutation.mutate()}
                 disabled={likeMutation.isPending}
-                className="flex-1 h-12 rounded-xl gradient-primary text-primary-foreground shadow-glow"
+                className="flex-1 h-12 rounded-2xl gradient-primary text-primary-foreground shadow-glow"
               >
                 <Heart className="w-4 h-4 mr-2" fill="currentColor" /> Like
               </Button>
@@ -197,7 +210,7 @@ export default function ViewProfilePage() {
                 onClick={() => friendMutation.mutate()}
                 disabled={friendMutation.isPending}
                 variant="outline"
-                className="flex-1 h-12 rounded-xl"
+                className="flex-1 h-12 rounded-2xl"
               >
                 <UserPlus className="w-4 h-4 mr-2" /> Add Friend
               </Button>
@@ -206,7 +219,7 @@ export default function ViewProfilePage() {
             <Button
               onClick={() => navigate(`/gallery/${userId}`)}
               variant="secondary"
-              className="w-full h-12 rounded-xl"
+              className="w-full h-12 rounded-2xl"
             >
               <Image className="w-4 h-4 mr-2" /> View Gallery
             </Button>
@@ -216,26 +229,26 @@ export default function ViewProfilePage() {
                 <Button
                   onClick={() => navigate(`/chat/${userId}`)}
                   variant="secondary"
-                  className="flex-1 h-12 rounded-xl"
+                  className="flex-1 h-12 rounded-2xl"
                 >
                   <MessageCircle className="w-4 h-4 mr-2" /> Message
                 </Button>
               ) : (
-                <div className="flex-1 text-center py-3 rounded-xl bg-secondary text-muted-foreground text-sm">
+                <div className="flex-1 text-center py-3 rounded-2xl bg-secondary text-muted-foreground text-sm">
                   Match to unlock chat 💬
                 </div>
               )}
               <Button
                 onClick={() => blockMutation.mutate()}
                 variant="outline"
-                className="h-12 rounded-xl text-destructive hover:text-destructive border-destructive/20"
+                className="h-12 rounded-2xl text-destructive hover:text-destructive border-destructive/20"
               >
                 <Shield className="w-4 h-4" />
               </Button>
               <Button
                 onClick={() => setShowReport(true)}
                 variant="outline"
-                className="h-12 rounded-xl text-destructive hover:text-destructive border-destructive/20"
+                className="h-12 rounded-2xl text-destructive hover:text-destructive border-destructive/20"
               >
                 <Flag className="w-4 h-4" />
               </Button>
@@ -250,6 +263,6 @@ export default function ViewProfilePage() {
         isOpen={showReport}
         onClose={() => setShowReport(false)}
       />
-    </div>
+    </PageTransition>
   );
 }

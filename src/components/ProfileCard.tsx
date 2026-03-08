@@ -1,8 +1,9 @@
-import { motion, useMotionValue, useTransform, PanInfo, AnimatePresence } from "framer-motion";
-import { Heart, X, Star, CheckCircle, MapPin } from "lucide-react";
+import { motion, useMotionValue, useTransform, PanInfo } from "framer-motion";
+import { Heart, X, Star, CheckCircle } from "lucide-react";
 import type { Profile } from "@/hooks/useProfile";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import VerifiedBadge from "@/components/VerifiedBadge";
 
 interface ProfileCardProps {
   profile: Profile;
@@ -41,24 +42,13 @@ export default function ProfileCard({ profile, onLike, onPass, onSuperLike }: Pr
     }
   };
 
-  const handleButtonLike = () => {
-    setExitDirection("right");
-    onLike();
-  };
-
-  const handleButtonPass = () => {
-    setExitDirection("left");
-    onPass();
-  };
-
-  const handleButtonSuperLike = () => {
-    setExitDirection("up");
-    onSuperLike?.();
-  };
+  const handleButtonLike = () => { setExitDirection("right"); onLike(); };
+  const handleButtonPass = () => { setExitDirection("left"); onPass(); };
+  const handleButtonSuperLike = () => { setExitDirection("up"); onSuperLike?.(); };
 
   return (
     <motion.div
-      className="absolute inset-x-0 mx-auto w-full max-w-[380px] aspect-[2.8/4.5] rounded-2xl overflow-hidden shadow-card touch-none select-none will-change-transform"
+      className="absolute inset-x-0 mx-auto w-full max-w-[380px] aspect-[2.8/4.5] rounded-3xl overflow-hidden shadow-elevated touch-none select-none will-change-transform"
       style={{ x, y, rotate }}
       drag
       dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
@@ -74,50 +64,52 @@ export default function ProfileCard({ profile, onLike, onPass, onSuperLike }: Pr
       }}
       transition={{ type: "spring", stiffness: 260, damping: 24 }}
     >
-      {/* LIKE / NOPE / SUPER LIKE overlays */}
+      {/* Overlays */}
       <motion.div
-        className="absolute top-8 left-6 z-30 px-5 py-2 rounded-lg border-[3px] border-green-400 rotate-[-20deg]"
+        className="absolute top-8 left-6 z-30 px-5 py-2 rounded-xl border-[3px] border-success rotate-[-20deg] bg-success/10 backdrop-blur-sm"
         style={{ opacity: likeOpacity }}
       >
-        <span className="text-green-400 font-black text-3xl tracking-wider">LIKE</span>
+        <span className="text-success font-black text-3xl tracking-wider">LIKE</span>
       </motion.div>
       <motion.div
-        className="absolute top-8 right-6 z-30 px-5 py-2 rounded-lg border-[3px] border-destructive rotate-[20deg]"
+        className="absolute top-8 right-6 z-30 px-5 py-2 rounded-xl border-[3px] border-destructive rotate-[20deg] bg-destructive/10 backdrop-blur-sm"
         style={{ opacity: passOpacity }}
       >
         <span className="text-destructive font-black text-3xl tracking-wider">NOPE</span>
       </motion.div>
       <motion.div
-        className="absolute top-1/3 left-1/2 -translate-x-1/2 z-30 px-5 py-2 rounded-lg border-[3px] border-blue-400"
+        className="absolute top-1/3 left-1/2 -translate-x-1/2 z-30 px-5 py-2 rounded-xl border-[3px] border-accent bg-accent/10 backdrop-blur-sm"
         style={{ opacity: superLikeOpacity }}
       >
-        <span className="text-blue-400 font-black text-2xl tracking-wider">SUPER LIKE</span>
+        <span className="text-accent font-black text-2xl tracking-wider">SUPER LIKE</span>
       </motion.div>
 
       {/* Photo */}
       <div className="absolute inset-0 bg-secondary">
         {allPhotos.length > 0 ? (
           <>
-            <img
+            <motion.img
+              key={photoIndex}
               src={allPhotos[photoIndex]}
               alt={profile.name}
               className="w-full h-full object-cover"
               draggable={false}
+              initial={{ opacity: 0.8 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.2 }}
             />
-            {/* Photo indicators */}
             {allPhotos.length > 1 && (
-              <div className="absolute top-2 left-3 right-3 flex gap-1 z-20">
+              <div className="absolute top-3 left-4 right-4 flex gap-1 z-20">
                 {allPhotos.map((_, i) => (
                   <div
                     key={i}
-                    className={`h-[3px] flex-1 rounded-full transition-all ${
-                      i === photoIndex ? "bg-primary-foreground" : "bg-primary-foreground/30"
+                    className={`h-[3px] flex-1 rounded-full transition-all duration-300 ${
+                      i === photoIndex ? "bg-primary-foreground shadow-glow" : "bg-primary-foreground/25"
                     }`}
                   />
                 ))}
               </div>
             )}
-            {/* Tap zones */}
             <div className="absolute inset-0 flex z-10" style={{ bottom: "160px" }}>
               <div className="flex-1" onClick={() => setPhotoIndex(Math.max(0, photoIndex - 1))} />
               <div className="flex-1" onClick={() => setPhotoIndex(Math.min(allPhotos.length - 1, photoIndex + 1))} />
@@ -130,30 +122,30 @@ export default function ProfileCard({ profile, onLike, onPass, onSuperLike }: Pr
         )}
       </div>
 
-      {/* Bottom gradient */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
+      {/* Bottom gradient - enhanced with glassmorphism */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent pointer-events-none" />
 
-      {/* Info overlay */}
+      {/* Info overlay with glass effect */}
       <div
         className="absolute bottom-20 left-0 right-0 px-5 z-10 cursor-pointer"
         onClick={() => navigate(`/user/${profile.user_id}`)}
       >
         <div className="flex items-end gap-2">
-          <h3 className="text-3xl font-bold text-white">
+          <h3 className="text-3xl font-bold text-primary-foreground drop-shadow-lg">
             {profile.name || profile.username}
           </h3>
-          {profile.age && <span className="text-2xl text-white/80 font-light">{profile.age}</span>}
-          {profile.is_verified && <CheckCircle className="w-6 h-6 text-blue-400 mb-1" />}
+          {profile.age && <span className="text-2xl text-primary-foreground/80 font-light">{profile.age}</span>}
+          {profile.is_verified && <VerifiedBadge size="sm" className="mb-1" />}
         </div>
 
         {profile.bio && (
-          <p className="text-sm text-white/75 mt-1 line-clamp-2 leading-relaxed">{profile.bio}</p>
+          <p className="text-sm text-primary-foreground/70 mt-1.5 line-clamp-2 leading-relaxed">{profile.bio}</p>
         )}
 
         {profile.interests && profile.interests.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mt-2.5">
+          <div className="flex flex-wrap gap-1.5 mt-3">
             {profile.interests.slice(0, 5).map((i) => (
-              <span key={i} className="px-3 py-1 text-xs rounded-full bg-white/15 text-white/90 backdrop-blur-sm font-medium">
+              <span key={i} className="px-3 py-1 text-xs rounded-full bg-primary-foreground/15 text-primary-foreground/90 backdrop-blur-md font-medium border border-primary-foreground/10">
                 {i}
               </span>
             ))}
@@ -161,30 +153,36 @@ export default function ProfileCard({ profile, onLike, onPass, onSuperLike }: Pr
         )}
       </div>
 
-      {/* Action buttons */}
+      {/* Action buttons - premium glass style */}
       <div className="absolute bottom-4 left-0 right-0 flex items-center justify-center gap-5 z-20">
-        <button
+        <motion.button
           onClick={handleButtonPass}
-          className="w-[52px] h-[52px] rounded-full bg-card/90 backdrop-blur border-2 border-destructive/40 flex items-center justify-center hover:scale-110 transition-transform active:scale-90 shadow-lg"
+          whileHover={{ scale: 1.12 }}
+          whileTap={{ scale: 0.88 }}
+          className="w-[54px] h-[54px] rounded-full bg-card/80 backdrop-blur-xl border-2 border-destructive/30 flex items-center justify-center shadow-elevated"
         >
           <X className="w-7 h-7 text-destructive" strokeWidth={3} />
-        </button>
+        </motion.button>
 
         {onSuperLike && (
-          <button
+          <motion.button
             onClick={handleButtonSuperLike}
-            className="w-11 h-11 rounded-full bg-card/90 backdrop-blur border-2 border-blue-400/40 flex items-center justify-center hover:scale-110 transition-transform active:scale-90 shadow-lg"
+            whileHover={{ scale: 1.12 }}
+            whileTap={{ scale: 0.88 }}
+            className="w-11 h-11 rounded-full bg-card/80 backdrop-blur-xl border-2 border-accent/30 flex items-center justify-center shadow-elevated"
           >
-            <Star className="w-5 h-5 text-blue-400" fill="currentColor" />
-          </button>
+            <Star className="w-5 h-5 text-accent" fill="currentColor" />
+          </motion.button>
         )}
 
-        <button
+        <motion.button
           onClick={handleButtonLike}
-          className="w-[52px] h-[52px] rounded-full bg-card/90 backdrop-blur border-2 border-green-400/40 flex items-center justify-center hover:scale-110 transition-transform active:scale-90 shadow-lg"
+          whileHover={{ scale: 1.12 }}
+          whileTap={{ scale: 0.88 }}
+          className="w-[54px] h-[54px] rounded-full gradient-primary border-2 border-primary-foreground/10 flex items-center justify-center shadow-glow"
         >
-          <Heart className="w-7 h-7 text-green-400" fill="currentColor" strokeWidth={0} />
-        </button>
+          <Heart className="w-7 h-7 text-primary-foreground" fill="currentColor" strokeWidth={0} />
+        </motion.button>
       </div>
     </motion.div>
   );
