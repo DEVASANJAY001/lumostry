@@ -35,7 +35,9 @@ export default function ChatConversationPage() {
   const queryClient = useQueryClient();
   const [newMessage, setNewMessage] = useState("");
   const [showReport, setShowReport] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: otherProfile } = useQuery({
     queryKey: ["profile", userId],
