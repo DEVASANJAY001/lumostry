@@ -102,12 +102,6 @@ export default function DiscoverPage() {
         <h1 className="text-xl font-heading font-semibold text-gradient tracking-tight">Lumos</h1>
         <div className="flex items-center gap-1.5">
           <button
-            onClick={() => navigate("/who-liked-me")}
-            className="w-9 h-9 rounded-full bg-rose-500/10 flex items-center justify-center active:scale-90 transition-all"
-          >
-            <Heart className="w-4 h-4 text-rose-500" fill="currentColor" />
-          </button>
-          <button
             onClick={handleRewind}
             disabled={!lastSwiped}
             className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center disabled:opacity-20 transition-all active:scale-90"
