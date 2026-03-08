@@ -36,9 +36,6 @@ export default function ChatConversationPage() {
   const [newMessage, setNewMessage] = useState("");
   const [showReport, setShowReport] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const queryClient = useQueryClient();
-  const [newMessage, setNewMessage] = useState("");
-  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { data: otherProfile } = useQuery({
     queryKey: ["profile", userId],
@@ -254,6 +251,13 @@ export default function ChatConversationPage() {
           <Send className="w-4 h-4" />
         </Button>
       </form>
+
+      <ReportUserModal
+        reportedUserId={userId!}
+        reportedUserName={otherProfile?.name || otherProfile?.username || "User"}
+        isOpen={showReport}
+        onClose={() => setShowReport(false)}
+      />
     </div>
   );
 }
