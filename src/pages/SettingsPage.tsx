@@ -1,18 +1,42 @@
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import {
   ArrowLeft, Edit, LogOut, Shield, Bell, Eye, HelpCircle, Heart,
-  CheckCircle, ChevronRight, Camera,
+  CheckCircle, ChevronRight, Camera, Trash2, Sparkles,
 } from "lucide-react";
 
 export default function SettingsPage() {
   const { signOut, user } = useAuth();
   const { data: profile } = useProfile();
   const navigate = useNavigate();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+      
+      const res = await supabase.functions.invoke("delete-account");
+      if (res.error) throw res.error;
+      
+      await signOut();
+      toast.success("Account deleted. We're sorry to see you go 😢");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete account");
+    } finally {
+      setDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  };
 
   const menuItems = [
     {
