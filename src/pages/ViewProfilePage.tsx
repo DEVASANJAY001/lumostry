@@ -30,12 +30,26 @@ export default function ViewProfilePage() {
     enabled: !!userId,
   });
 
+  const { data: isMatched } = useQuery({
+    queryKey: ["is-matched", user?.id, userId],
+    queryFn: async () => {
+      if (!user || !userId) return false;
+      const { data } = await supabase
+        .from("matches")
+        .select("id")
+        .or(`and(user1_id.eq.${user.id},user2_id.eq.${userId}),and(user1_id.eq.${userId},user2_id.eq.${user.id})`)
+        .maybeSingle();
+      return !!data;
+    },
+    enabled: !!user && !!userId,
+  });
+
   const likeMutation = useMutation({
     mutationFn: async () => {
       const { error } = await supabase
         .from("likes")
         .insert({ liker_id: user!.id, liked_id: userId! });
-      if (error) throw error;
+      if (error && error.code !== "23505") throw error;
       toast.success("Liked! 💖");
     },
   });
