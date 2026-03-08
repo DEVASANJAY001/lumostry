@@ -12,6 +12,8 @@ export default function AuthPage() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [agreedTerms, setAgreedTerms] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,7 +124,7 @@ export default function AuthPage() {
 
               <Button
                 type="submit"
-                disabled={loading}
+                disabled={loading || (!isLogin && !agreedTerms)}
                 className="w-full gradient-primary text-primary-foreground font-semibold h-12 rounded-xl shadow-glow"
               >
                 {loading ? (
@@ -134,6 +136,26 @@ export default function AuthPage() {
                   </>
                 )}
               </Button>
+
+              {!isLogin && (
+                <div className="flex items-start gap-2 mt-1">
+                  <input
+                    type="checkbox"
+                    id="terms"
+                    checked={agreedTerms}
+                    onChange={(e) => setAgreedTerms(e.target.checked)}
+                    className="mt-1 accent-primary"
+                  />
+                  <label htmlFor="terms" className="text-xs text-muted-foreground leading-tight">
+                    I agree to the{" "}
+                    <button type="button" onClick={() => setShowTerms(true)} className="text-primary underline">
+                      Terms & Conditions
+                    </button>
+                    . I understand that Connectly is not responsible for any interactions,
+                    and I use this platform at my own risk.
+                  </label>
+                </div>
+              )}
             </motion.form>
           </AnimatePresence>
 
@@ -149,6 +171,52 @@ export default function AuthPage() {
             </button>
           </div>
         </motion.div>
+
+        {/* Terms Modal */}
+        {showTerms && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
+            onClick={() => setShowTerms(false)}
+          >
+            <motion.div
+              initial={{ y: 100 }}
+              animate={{ y: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-sm max-h-[70vh] overflow-y-auto rounded-2xl bg-card border border-border p-6 shadow-card"
+            >
+              <h2 className="text-lg font-heading font-bold mb-4">Terms & Conditions</h2>
+              <div className="text-sm text-muted-foreground space-y-3 leading-relaxed">
+                <p><strong className="text-foreground">1. Acceptance of Terms</strong><br />
+                  By creating an account on Connectly, you agree to these Terms & Conditions. If you do not agree, do not use the platform.</p>
+                <p><strong className="text-foreground">2. Use at Your Own Risk</strong><br />
+                  Connectly is a social platform that connects users. <strong>We are not responsible</strong> for any interactions, conversations, meetings, or outcomes that result from using this platform. You use Connectly entirely at your own risk.</p>
+                <p><strong className="text-foreground">3. No Liability</strong><br />
+                  Connectly, its creators, and affiliates shall not be held liable for any damages, losses, harm, or disputes arising from the use of this platform, including but not limited to emotional distress, financial loss, or physical harm.</p>
+                <p><strong className="text-foreground">4. User Conduct</strong><br />
+                  You agree to: use real photos and accurate information; not harass, threaten, or abuse other users; not create fake or misleading profiles; report suspicious or harmful behavior; be at least 18 years old.</p>
+                <p><strong className="text-foreground">5. Content Responsibility</strong><br />
+                  You are solely responsible for all content you share, including photos, messages, and profile information. Connectly reserves the right to remove content that violates these terms.</p>
+                <p><strong className="text-foreground">6. Privacy</strong><br />
+                  Your data is stored securely but Connectly cannot guarantee absolute security. Do not share sensitive personal information (financial details, passwords) with other users.</p>
+                <p><strong className="text-foreground">7. Account Termination</strong><br />
+                  Connectly reserves the right to suspend or terminate accounts that violate these terms without prior notice.</p>
+                <p><strong className="text-foreground">8. Gender Policy</strong><br />
+                  Once you select your gender during profile setup, it cannot be changed. This policy exists to maintain trust and safety on the platform.</p>
+                <p><strong className="text-foreground">9. Modifications</strong><br />
+                  We reserve the right to modify these terms at any time. Continued use of the platform constitutes acceptance of updated terms.</p>
+                <p className="text-xs pt-2 border-t border-border">Last updated: March 2026</p>
+              </div>
+              <Button
+                onClick={() => { setShowTerms(false); setAgreedTerms(true); }}
+                className="w-full mt-4 gradient-primary text-primary-foreground rounded-xl"
+              >
+                I Agree
+              </Button>
+            </motion.div>
+          </motion.div>
+        )}
       </motion.div>
     </div>
   );
