@@ -65,6 +65,7 @@ function AppRoutes() {
       <Route path="/verify" element={<VerifyProfilePage />} />
       <Route path="/user/:userId" element={<ViewProfilePage />} />
       <Route path="/friend-requests" element={<FriendRequestsPage />} />
+      <Route path="/terms" element={<TermsPage />} />
       <Route path="/onboarding" element={<OnboardingPage />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
