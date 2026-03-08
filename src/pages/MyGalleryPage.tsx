@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { ArrowLeft, Plus, ImagePlus, Trash2, Loader2, Lock, Unlock } from "lucide-react";
+import { ArrowLeft, Plus, ImagePlus, Trash2, Loader2, Lock, Unlock, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -16,6 +16,7 @@ export default function MyGalleryPage() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [pointsInput, setPointsInput] = useState(0);
+  const [viewPhoto, setViewPhoto] = useState<string | null>(null);
 
   const { data: photos, isLoading } = useQuery({
     queryKey: ["my-gallery", user?.id],
@@ -143,7 +144,7 @@ export default function MyGalleryPage() {
               transition={{ delay: idx * 0.03 }}
               className="relative rounded-2xl overflow-hidden aspect-square bg-secondary group"
             >
-              <img src={photo.photo_url} alt="" className="w-full h-full object-cover" />
+              <img src={photo.photo_url} alt="" className="w-full h-full object-cover cursor-pointer" onClick={() => setViewPhoto(photo.photo_url)} />
               <div className="absolute top-2 left-2">
                 {photo.points_required > 0 ? (
                   <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-background/80 backdrop-blur text-xs font-medium text-primary">
@@ -173,6 +174,20 @@ export default function MyGalleryPage() {
       </div>
 
       <BottomNav />
+
+      {viewPhoto && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="fixed inset-0 z-50 bg-background/95 backdrop-blur-xl flex items-center justify-center"
+          onClick={() => setViewPhoto(null)}
+        >
+          <button className="absolute top-4 right-4 w-10 h-10 rounded-full bg-card border border-border flex items-center justify-center z-10">
+            <X className="w-5 h-5" />
+          </button>
+          <img src={viewPhoto} alt="" className="max-w-full max-h-full object-contain p-4" onClick={(e) => e.stopPropagation()} />
+        </motion.div>
+      )}
     </div>
   );
 }
