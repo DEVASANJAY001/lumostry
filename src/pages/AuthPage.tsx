@@ -159,6 +159,16 @@ export default function AuthPage() {
                 )}
               </Button>
 
+              {isLogin && (
+                <button
+                  type="button"
+                  onClick={() => setShowForgot(true)}
+                  className="text-xs text-primary hover:underline w-full text-center"
+                >
+                  Forgot password?
+                </button>
+              )}
+
               {!isLogin && (
                 <div className="flex items-start gap-2 mt-1">
                   <input
