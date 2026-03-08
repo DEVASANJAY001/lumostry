@@ -6,12 +6,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import BottomNav from "@/components/BottomNav";
 import {
-  ArrowLeft, Camera, Plus, X, CheckCircle, Upload, Save,
+  ArrowLeft, Camera, Plus, X, Upload, Save, CalendarIcon,
 } from "lucide-react";
+import { format, differenceInYears } from "date-fns";
+import { cn } from "@/lib/utils";
 
 const INTERESTS = [
   "Music", "Travel", "Gaming", "Fitness", "Photography",
@@ -43,7 +47,7 @@ export default function EditProfilePage() {
   const [form, setForm] = useState(() => ({
     name: profile?.name || "",
     username: profile?.username || "",
-    age: profile?.age?.toString() || "",
+    dateOfBirth: profile?.date_of_birth ? new Date(profile.date_of_birth) : null as Date | null,
     bio: profile?.bio || "",
     gender: profile?.gender || ("" as typeof profile.gender | ""),
     preference: profile?.preference || ("" as typeof profile.preference | ""),
@@ -116,12 +120,18 @@ export default function EditProfilePage() {
         avatar_url = urlData.publicUrl;
       }
 
+      const age = form.dateOfBirth ? differenceInYears(new Date(), form.dateOfBirth) : null;
+      if (age !== null && age < 18) {
+        toast.error("You must be at least 18 years old");
+        return;
+      }
+
       await updateProfile.mutateAsync({
         name: form.name,
         username: form.username,
-        age: form.age ? parseInt(form.age) : null,
+        age,
+        date_of_birth: form.dateOfBirth ? format(form.dateOfBirth, "yyyy-MM-dd") : null,
         bio: form.bio,
-        // Only set gender if not already set (locked after first save)
         ...(profile?.gender ? {} : { gender: form.gender || null }),
         preference: form.preference || null,
         interests: form.interests,
@@ -241,16 +251,48 @@ export default function EditProfilePage() {
             />
           </div>
           <div>
-            <label className="text-sm font-medium mb-1 block">Age</label>
-            <Input
-              type="number"
-              value={form.age}
-              onChange={(e) => setForm({ ...form, age: e.target.value })}
-              className="bg-secondary border-border"
-              placeholder="Your age"
-              min={18}
-              max={99}
-            />
+            <label className="text-sm font-medium mb-1 block">Date of Birth</label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start bg-secondary border-border",
+                    !form.dateOfBirth && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="w-4 h-4 mr-2" />
+                  {form.dateOfBirth
+                    ? format(form.dateOfBirth, "PPP")
+                    : "Select your birthday"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={form.dateOfBirth || undefined}
+                  onSelect={(date) => setForm({ ...form, dateOfBirth: date || null })}
+                  disabled={(date) =>
+                    date > new Date() || date < new Date("1920-01-01")
+                  }
+                  defaultMonth={form.dateOfBirth || new Date(2000, 0)}
+                  captionLayout="dropdown-buttons"
+                  fromYear={1920}
+                  toYear={new Date().getFullYear() - 18}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
+            {form.dateOfBirth && (
+              <p className={cn(
+                "text-xs mt-1",
+                differenceInYears(new Date(), form.dateOfBirth) < 18 ? "text-destructive" : "text-muted-foreground"
+              )}>
+                Age: {differenceInYears(new Date(), form.dateOfBirth)}
+                {differenceInYears(new Date(), form.dateOfBirth) >= 18 ? " ✓" : " — Must be 18+"}
+              </p>
+            )}
           </div>
         </motion.div>
 
