@@ -204,7 +204,7 @@ export default function SettingsPage() {
         </motion.div>
 
         <p className="text-center text-xs text-muted-foreground pb-4">
-          Connectly v2.0 • Made with 💖
+          Lumos v2.0 • Made with ✨
         </p>
       </div>
 
