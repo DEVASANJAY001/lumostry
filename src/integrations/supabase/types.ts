@@ -137,6 +137,7 @@ export type Database = {
           avatar_url: string | null
           bio: string | null
           created_at: string
+          date_of_birth: string | null
           gender: Database["public"]["Enums"]["gender_type"] | null
           id: string
           interests: string[] | null
@@ -157,6 +158,7 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
+          date_of_birth?: string | null
           gender?: Database["public"]["Enums"]["gender_type"] | null
           id?: string
           interests?: string[] | null
@@ -177,6 +179,7 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
+          date_of_birth?: string | null
           gender?: Database["public"]["Enums"]["gender_type"] | null
           id?: string
           interests?: string[] | null
@@ -191,6 +194,33 @@ export type Database = {
           user_id?: string
           username?: string | null
           verification_photo_url?: string | null
+        }
+        Relationships: []
+      }
+      reports: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          reason: string
+          reported_id: string
+          reporter_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          reason: string
+          reported_id: string
+          reporter_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          reason?: string
+          reported_id?: string
+          reporter_id?: string
         }
         Relationships: []
       }
