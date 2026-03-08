@@ -44,7 +44,7 @@ export default function NotificationsPage() {
         .order("created_at", { ascending: false })
         .limit(50);
       if (error) throw error;
-      return (data || []) as Notification[];
+      return (data || []) as unknown as Notification[];
     },
     enabled: !!user,
   });
