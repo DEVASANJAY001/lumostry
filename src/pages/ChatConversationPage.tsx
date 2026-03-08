@@ -268,7 +268,16 @@ export default function ChatConversationPage() {
                     : "bg-secondary text-foreground rounded-bl-md"
                 }`}
               >
-                <p>{msg.content}</p>
+                {msg.message_type === "image" ? (
+                  <img
+                    src={msg.content}
+                    alt="Photo"
+                    className="rounded-xl max-w-full max-h-60 object-cover cursor-pointer"
+                    onClick={() => window.open(msg.content, "_blank")}
+                  />
+                ) : (
+                  <p>{msg.content}</p>
+                )}
                 <p className={`text-[10px] mt-1 ${isMine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
                   {format(new Date(msg.created_at), "HH:mm")}
                   {isMine && msg.is_read && " ✓✓"}
