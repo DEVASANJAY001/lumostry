@@ -3,33 +3,25 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
+import PageTransition from "@/components/PageTransition";
+import VerifiedBadge from "@/components/VerifiedBadge";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { LogOut, Settings, Edit, CheckCircle, Camera, Users, ChevronRight, Wallet, Image } from "lucide-react";
+import { Settings, Edit, Camera, Users, ChevronRight, Wallet, Image, CheckCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 
-const GENDER_LABELS: Record<string, string> = {
-  male: "Male",
-  female: "Female",
-  non_binary: "Non-binary",
-  prefer_not_to_say: "Prefer not to say",
-};
-
 export default function ProfilePage() {
   const { data: profile } = useProfile();
-  const { signOut, user } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [photoIndex, setPhotoIndex] = useState(0);
 
-  // Get match count
   const { data: matchCount } = useQuery({
     queryKey: ["match-count", user?.id],
     queryFn: async () => {
       if (!user) return 0;
-      const { count } = await supabase
-        .from("matches")
-        .select("*", { count: "exact", head: true })
+      const { count } = await supabase.from("matches").select("*", { count: "exact", head: true })
         .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`);
       return count || 0;
     },
@@ -40,27 +32,19 @@ export default function ProfilePage() {
     queryKey: ["wallet-balance", user?.id],
     queryFn: async () => {
       if (!user) return 0;
-      const { data } = await supabase
-        .from("wallets")
-        .select("balance")
-        .eq("user_id", user.id)
-        .maybeSingle();
+      const { data } = await supabase.from("wallets").select("balance").eq("user_id", user.id).maybeSingle();
       return data?.balance || 0;
     },
     enabled: !!user,
   });
   const walletBalance = typeof walletData === "number" ? walletData : 0;
 
-  // Get pending friend request count
   const { data: requestCount } = useQuery({
     queryKey: ["request-count", user?.id],
     queryFn: async () => {
       if (!user) return 0;
-      const { count } = await supabase
-        .from("friend_requests")
-        .select("*", { count: "exact", head: true })
-        .eq("receiver_id", user.id)
-        .eq("status", "pending");
+      const { count } = await supabase.from("friend_requests").select("*", { count: "exact", head: true })
+        .eq("receiver_id", user.id).eq("status", "pending");
       return count || 0;
     },
     enabled: !!user,
@@ -71,30 +55,36 @@ export default function ProfilePage() {
     ...(profile?.photos || []),
   ];
 
+  const quickActions = [
+    ...(requestCount && requestCount > 0 ? [{
+      icon: Users, label: `${requestCount} friend request${requestCount > 1 ? "s" : ""}`, variant: "highlight" as const,
+      onClick: () => navigate("/friend-requests"),
+    }] : []),
+    { icon: Edit, label: "Edit Profile", onClick: () => navigate("/edit-profile") },
+    { icon: Image, label: "My Gallery", onClick: () => navigate("/my-gallery") },
+    { icon: Wallet, label: `Wallet · ${walletBalance} pts`, onClick: () => navigate("/wallet") },
+    ...(!profile?.is_verified ? [{ icon: CheckCircle, label: "Verify Profile", onClick: () => navigate("/verify") }] : []),
+  ];
+
   return (
-    <div className="min-h-screen pb-20">
-      <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border px-4 py-3 flex items-center justify-between">
-        <h1 className="text-xl font-heading font-bold text-gradient">Profile</h1>
-        <button onClick={() => navigate("/settings")} className="p-2">
-          <Settings className="w-5 h-5 text-muted-foreground" />
+    <PageTransition className="min-h-screen pb-20">
+      <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border px-5 py-3 flex items-center justify-between">
+        <h1 className="text-lg font-heading font-semibold">Profile</h1>
+        <button onClick={() => navigate("/settings")} className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center">
+          <Settings className="w-4 h-4 text-muted-foreground" />
         </button>
       </div>
 
       <div className="p-5">
-        {/* Photo gallery at top */}
+        {/* Photo */}
         {allPhotos.length > 0 ? (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="relative aspect-[4/3] rounded-3xl overflow-hidden mb-6">
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="relative aspect-[4/3] rounded-2xl overflow-hidden mb-5 shadow-card">
             <img src={allPhotos[photoIndex]} alt="" className="w-full h-full object-cover" />
             {allPhotos.length > 1 && (
               <>
                 <div className="absolute top-3 left-3 right-3 flex gap-1 z-10">
                   {allPhotos.map((_, i) => (
-                    <div
-                      key={i}
-                      className={`h-0.5 flex-1 rounded-full transition-all ${
-                        i === photoIndex ? "bg-primary-foreground" : "bg-primary-foreground/30"
-                      }`}
-                    />
+                    <div key={i} className={`h-[2px] flex-1 rounded-full transition-all ${i === photoIndex ? "bg-primary-foreground" : "bg-primary-foreground/25"}`} />
                   ))}
                 </div>
                 <div className="absolute inset-0 flex z-10">
@@ -103,127 +93,76 @@ export default function ProfilePage() {
                 </div>
               </>
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-background/60 to-transparent pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-t from-background/50 to-transparent pointer-events-none" />
           </motion.div>
         ) : (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="aspect-[4/3] rounded-3xl bg-secondary flex flex-col items-center justify-center mb-6 border-2 border-dashed border-border cursor-pointer"
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+            className="aspect-[4/3] rounded-2xl bg-secondary flex flex-col items-center justify-center mb-5 border border-dashed border-border cursor-pointer"
             onClick={() => navigate("/edit-profile")}
           >
-            <Camera className="w-10 h-10 text-muted-foreground mb-2" />
-            <p className="text-sm text-muted-foreground">Add photos to your profile</p>
+            <Camera className="w-8 h-8 text-muted-foreground mb-2" />
+            <p className="text-sm text-muted-foreground">Add your photos</p>
           </motion.div>
         )}
 
-        {/* Name & info */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+        {/* Name */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.05 }}>
           <div className="flex items-center gap-2">
-            <h2 className="text-2xl font-heading font-bold">
-              {profile?.name || profile?.username || "User"}
-            </h2>
-            {profile?.age && <span className="text-lg text-muted-foreground">{profile.age}</span>}
-            {profile?.is_verified && <CheckCircle className="w-5 h-5 text-primary" />}
+            <h2 className="text-xl font-heading font-semibold">{profile?.name || profile?.username || "User"}</h2>
+            {profile?.age && <span className="text-muted-foreground">{profile.age}</span>}
+            {profile?.is_verified && <VerifiedBadge size="sm" />}
           </div>
-          {profile?.username && (
-            <p className="text-muted-foreground text-sm">@{profile.username}</p>
-          )}
-          {profile?.bio && (
-            <p className="text-sm text-muted-foreground mt-2 leading-relaxed">{profile.bio}</p>
-          )}
+          {profile?.username && <p className="text-muted-foreground text-sm">@{profile.username}</p>}
+          {profile?.bio && <p className="text-sm text-muted-foreground mt-2 leading-relaxed">{profile.bio}</p>}
         </motion.div>
 
         {/* Stats */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="grid grid-cols-3 gap-3 mt-6">
-          <div className="rounded-2xl bg-card border border-border p-3 text-center">
-            <p className="text-xl font-heading font-bold text-primary">{matchCount || 0}</p>
-            <p className="text-xs text-muted-foreground">Matches</p>
-          </div>
-          <div className="rounded-2xl bg-card border border-border p-3 text-center">
-            <p className="text-xl font-heading font-bold">{allPhotos.length}</p>
-            <p className="text-xs text-muted-foreground">Photos</p>
-          </div>
-          <div className="rounded-2xl bg-card border border-border p-3 text-center">
-            <p className="text-xl font-heading font-bold">{profile?.interests?.length || 0}</p>
-            <p className="text-xs text-muted-foreground">Interests</p>
-          </div>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }} className="grid grid-cols-3 gap-2.5 mt-5">
+          {[
+            { value: matchCount || 0, label: "Matches", color: "text-primary" },
+            { value: allPhotos.length, label: "Photos", color: "text-foreground" },
+            { value: profile?.interests?.length || 0, label: "Interests", color: "text-foreground" },
+          ].map((stat) => (
+            <div key={stat.label} className="rounded-xl bg-card border border-border p-3 text-center shadow-card">
+              <p className={`text-lg font-heading font-semibold ${stat.color}`}>{stat.value}</p>
+              <p className="text-[11px] text-muted-foreground">{stat.label}</p>
+            </div>
+          ))}
         </motion.div>
 
         {/* Interests */}
         {profile?.interests && profile.interests.length > 0 && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mt-6">
-            <h3 className="font-heading font-semibold mb-3 text-sm">Interests</h3>
-            <div className="flex flex-wrap gap-2">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }} className="mt-5">
+            <h3 className="font-heading font-medium text-sm mb-2">Interests</h3>
+            <div className="flex flex-wrap gap-1.5">
               {profile.interests.map((i) => (
-                <span key={i} className="px-3 py-1.5 rounded-full text-xs bg-primary/10 text-primary font-medium">
-                  {i}
-                </span>
+                <span key={i} className="px-3 py-1 rounded-full text-xs bg-primary/8 text-primary font-medium border border-primary/10">{i}</span>
               ))}
             </div>
           </motion.div>
         )}
 
         {/* Quick actions */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mt-6 space-y-2">
-          {requestCount && requestCount > 0 ? (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className="mt-5 space-y-1.5">
+          {quickActions.map((action, idx) => (
             <button
-              onClick={() => navigate("/friend-requests")}
-              className="w-full flex items-center gap-3 p-4 rounded-2xl bg-primary/10 border border-primary/20 hover:bg-primary/15 transition-colors"
+              key={idx}
+              onClick={action.onClick}
+              className={`w-full flex items-center gap-3 p-3.5 rounded-xl text-left transition-all active:scale-[0.98] ${
+                action.variant === "highlight"
+                  ? "bg-primary/8 border border-primary/15"
+                  : "bg-card border border-border hover:bg-secondary/50"
+              }`}
             >
-              <Users className="w-5 h-5 text-primary" />
-              <span className="flex-1 text-left text-sm font-medium">
-                {requestCount} pending friend request{requestCount > 1 ? "s" : ""}
-              </span>
-              <ChevronRight className="w-4 h-4 text-primary" />
+              <action.icon className={`w-4 h-4 ${action.variant === "highlight" ? "text-primary" : "text-muted-foreground"}`} />
+              <span className="flex-1 text-sm font-medium">{action.label}</span>
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
             </button>
-          ) : null}
-
-          <Button
-            variant="outline"
-            className="w-full justify-start h-12 rounded-2xl"
-            onClick={() => navigate("/edit-profile")}
-          >
-            <Edit className="w-4 h-4 mr-3" /> Edit Profile
-          </Button>
-
-          <Button
-            variant="outline"
-            className="w-full justify-start h-12 rounded-2xl"
-            onClick={() => navigate("/my-gallery")}
-          >
-            <Image className="w-4 h-4 mr-3" /> My Gallery
-          </Button>
-
-          <Button
-            variant="outline"
-            className="w-full justify-start h-12 rounded-2xl border-primary/20 text-primary hover:text-primary"
-            onClick={() => navigate("/wallet")}
-          >
-            <Wallet className="w-4 h-4 mr-3" /> Wallet ({walletBalance} pts)
-          </Button>
-
-          {!profile?.is_verified && (
-            <Button
-              variant="outline"
-              className="w-full justify-start h-12 rounded-2xl border-primary/20 text-primary hover:text-primary"
-              onClick={() => navigate("/verify")}
-            >
-              <CheckCircle className="w-4 h-4 mr-3" /> Verify Profile
-            </Button>
-          )}
-
-          <Button
-            variant="outline"
-            className="w-full justify-start h-12 rounded-2xl text-destructive hover:text-destructive border-destructive/20"
-            onClick={signOut}
-          >
-            <LogOut className="w-4 h-4 mr-3" /> Sign Out
-          </Button>
+          ))}
         </motion.div>
       </div>
 
       <BottomNav />
-    </div>
+    </PageTransition>
   );
 }
