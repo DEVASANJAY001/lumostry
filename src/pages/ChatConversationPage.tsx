@@ -149,6 +149,51 @@ export default function ChatConversationPage() {
     setNewMessage("");
   };
 
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Please select a valid image file");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be less than 5MB");
+      return;
+    }
+
+    setUploadingPhoto(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${user.id}/${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("chat-photos")
+        .upload(path, file);
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from("chat-photos")
+        .getPublicUrl(path);
+
+      const { error } = await supabase.from("messages").insert({
+        sender_id: user.id,
+        receiver_id: userId!,
+        content: urlData.publicUrl,
+        message_type: "image",
+      });
+      if (error) throw error;
+
+      queryClient.invalidateQueries({ queryKey: ["messages", user.id, userId] });
+      queryClient.invalidateQueries({ queryKey: ["chats"] });
+    } catch (err) {
+      toast.error("Failed to send photo");
+    } finally {
+      setUploadingPhoto(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen">
       {/* Header */}
