@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { LogOut, Settings, Edit, CheckCircle, Camera, Users, ChevronRight } from "lucide-react";
+import { LogOut, Settings, Edit, CheckCircle, Camera, Users, ChevronRight, Wallet, Image } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 
@@ -32,6 +32,20 @@ export default function ProfilePage() {
         .select("*", { count: "exact", head: true })
         .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`);
       return count || 0;
+    },
+    enabled: !!user,
+  });
+
+  const { data: walletBalance } = useQuery({
+    queryKey: ["wallet", user?.id],
+    queryFn: async () => {
+      if (!user) return 0;
+      const { data } = await supabase
+        .from("wallets")
+        .select("balance")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      return data?.balance || 0;
     },
     enabled: !!user,
   });
@@ -170,6 +184,22 @@ export default function ProfilePage() {
             onClick={() => navigate("/edit-profile")}
           >
             <Edit className="w-4 h-4 mr-3" /> Edit Profile
+          </Button>
+
+          <Button
+            variant="outline"
+            className="w-full justify-start h-12 rounded-2xl"
+            onClick={() => navigate("/my-gallery")}
+          >
+            <Image className="w-4 h-4 mr-3" /> My Gallery
+          </Button>
+
+          <Button
+            variant="outline"
+            className="w-full justify-start h-12 rounded-2xl border-primary/20 text-primary hover:text-primary"
+            onClick={() => navigate("/wallet")}
+          >
+            <Wallet className="w-4 h-4 mr-3" /> Wallet ({walletBalance} pts)
           </Button>
 
           {!profile?.is_verified && (

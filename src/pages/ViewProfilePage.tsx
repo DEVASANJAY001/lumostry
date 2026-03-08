@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
-import { ArrowLeft, Heart, UserPlus, Shield, CheckCircle, MessageCircle, Flag } from "lucide-react";
+import { ArrowLeft, Heart, UserPlus, Shield, CheckCircle, MessageCircle, Flag, Image } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import type { Profile } from "@/hooks/useProfile";
@@ -202,6 +202,14 @@ export default function ViewProfilePage() {
                 <UserPlus className="w-4 h-4 mr-2" /> Add Friend
               </Button>
             </div>
+
+            <Button
+              onClick={() => navigate(`/gallery/${userId}`)}
+              variant="secondary"
+              className="w-full h-12 rounded-xl"
+            >
+              <Image className="w-4 h-4 mr-2" /> View Gallery
+            </Button>
 
             <div className="flex gap-3">
               {isMatched ? (

@@ -21,6 +21,9 @@ import FriendRequestsPage from "./pages/FriendRequestsPage";
 import TermsPage from "./pages/TermsPage";
 import SearchPage from "./pages/SearchPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import WalletPage from "./pages/WalletPage";
+import MyGalleryPage from "./pages/MyGalleryPage";
+import UserGalleryPage from "./pages/UserGalleryPage";
 import NotFound from "./pages/NotFound";
 import { Sparkles } from "lucide-react";
 
@@ -74,6 +77,9 @@ function AppRoutes() {
       <Route path="/terms" element={<TermsPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/onboarding" element={<OnboardingPage />} />
+      <Route path="/wallet" element={<WalletPage />} />
+      <Route path="/my-gallery" element={<MyGalleryPage />} />
+      <Route path="/gallery/:userId" element={<UserGalleryPage />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
