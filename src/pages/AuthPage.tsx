@@ -249,6 +249,43 @@ export default function AuthPage() {
             </motion.div>
           </motion.div>
         )}
+
+        {/* Forgot Password Modal */}
+        {showForgot && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => setShowForgot(false)}
+          >
+            <motion.div
+              initial={{ y: 50, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-sm rounded-2xl bg-card border border-border p-6 shadow-card"
+            >
+              <h2 className="text-lg font-heading font-bold mb-2">Reset Password</h2>
+              <p className="text-sm text-muted-foreground mb-4">Enter your email and we'll send you a reset link.</p>
+              <div className="relative mb-4">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  type="email"
+                  placeholder="Your email"
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  className="pl-10 bg-secondary border-border"
+                />
+              </div>
+              <Button
+                onClick={handleForgotPassword}
+                disabled={loading}
+                className="w-full gradient-primary text-primary-foreground rounded-xl"
+              >
+                {loading ? <Sparkles className="w-4 h-4 animate-spin" /> : "Send Reset Link"}
+              </Button>
+            </motion.div>
+          </motion.div>
+        )}
       </motion.div>
     </div>
   );
