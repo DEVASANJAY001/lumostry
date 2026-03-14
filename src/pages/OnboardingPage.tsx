@@ -82,7 +82,8 @@ export default function OnboardingPage() {
         avatar_url, profile_complete: true,
       });
       toast.success("Welcome to Lumos ✨");
-      navigate("/discover");
+      // Force navigation to discover after profile completion
+      window.location.href = "/discover";
     } catch (err: any) { toast.error(err.message); }
   };
 

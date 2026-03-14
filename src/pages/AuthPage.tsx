@@ -28,10 +28,10 @@ export default function AuthPage() {
       } else {
         const { error } = await supabase.auth.signUp({
           email, password,
-          options: { data: { name }, emailRedirectTo: window.location.origin },
+          options: { data: { name } },
         });
         if (error) throw error;
-        toast.success("Welcome to Lumos ✨");
+        toast.success("Account created! Let's set up your profile ✨");
       }
     } catch (err: any) {
       toast.error(err.message);
