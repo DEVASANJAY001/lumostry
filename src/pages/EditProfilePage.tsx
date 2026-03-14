@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import BottomNav from "@/components/BottomNav";
 import {
-  ArrowLeft, Camera, Plus, X, Upload, Save, CalendarIcon,
+  ArrowLeft, Camera, Plus, X, Upload, Save,
 } from "lucide-react";
 import { format, differenceInYears } from "date-fns";
 import { cn } from "@/lib/utils";
