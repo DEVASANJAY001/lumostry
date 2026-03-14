@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import DateOfBirthPicker from "@/components/DateOfBirthPicker";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, ArrowLeft, Sparkles, User, Heart, Star, CalendarIcon } from "lucide-react";
+import { ArrowRight, ArrowLeft, Sparkles, User, Heart, Star, Camera } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { format, differenceInYears } from "date-fns";
