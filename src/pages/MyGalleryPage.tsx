@@ -9,6 +9,7 @@ import { ArrowLeft, Plus, ImagePlus, Trash2, Loader2, Lock, Unlock } from "lucid
 import Lightbox from "@/components/Lightbox";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import ImageCropDialog from "@/components/ImageCropDialog";
 
 export default function MyGalleryPage() {
   const { user } = useAuth();
@@ -18,6 +19,7 @@ export default function MyGalleryPage() {
   const [uploading, setUploading] = useState(false);
   const [pointsInput, setPointsInput] = useState(0);
   const [viewPhoto, setViewPhoto] = useState<string | null>(null);
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
 
   const { data: photos, isLoading } = useQuery({
     queryKey: ["my-gallery", user?.id],
@@ -46,6 +48,13 @@ export default function MyGalleryPage() {
       return;
     }
 
+    const reader = new FileReader();
+    reader.addEventListener("load", () => setCropImageSrc(reader.result?.toString() || null));
+    reader.readAsDataURL(file);
+    if (e.target) e.target.value = "";
+  };
+
+  const executeUpload = async (file: File) => {
     setUploading(true);
     try {
       const ext = file.name.split(".").pop();
@@ -73,7 +82,7 @@ export default function MyGalleryPage() {
       toast.error(err.message || "Upload failed");
     } finally {
       setUploading(false);
-      if (fileRef.current) fileRef.current.value = "";
+      setCropImageSrc(null);
     }
   };
 
@@ -177,6 +186,15 @@ export default function MyGalleryPage() {
       <BottomNav />
 
       {viewPhoto && <Lightbox src={viewPhoto} onClose={() => setViewPhoto(null)} />}
+
+      {cropImageSrc && (
+        <ImageCropDialog
+          imageSrc={cropImageSrc}
+          onClose={() => setCropImageSrc(null)}
+          onCropSubmit={executeUpload}
+          allowRatioChange={true}
+        />
+      )}
     </div>
   );
 }

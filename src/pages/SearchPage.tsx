@@ -37,6 +37,7 @@ export default function SearchPage() {
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [swipeCount, setSwipeCount] = useState(0);
+  const [searchSeed, setSearchSeed] = useState(0);
 
   const freeLimit = genderFilter === "everyone" ? FREE_SWIPES_EVERYONE : FREE_SWIPES_GENDER;
   const remainingFree = Math.max(0, freeLimit - swipeCount);
@@ -58,7 +59,7 @@ export default function SearchPage() {
   });
 
   const { data: profiles = [], isLoading, refetch } = useQuery({
-    queryKey: ["search-profiles", user?.id, genderFilter, ageRange, verifiedOnly, selectedInterests],
+    queryKey: ["search-profiles", user?.id, genderFilter, ageRange, verifiedOnly, selectedInterests, searchSeed],
     queryFn: async () => {
       if (!user) return [];
 
@@ -204,9 +205,8 @@ export default function SearchPage() {
           <h1 className="text-xl font-heading font-bold text-gradient flex-1">Search</h1>
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`relative w-9 h-9 rounded-full flex items-center justify-center transition-all ${
-              showFilters ? "gradient-primary text-primary-foreground shadow-glow" : "bg-secondary text-muted-foreground"
-            }`}
+            className={`relative w-9 h-9 rounded-full flex items-center justify-center transition-all ${showFilters ? "gradient-primary text-primary-foreground shadow-glow" : "bg-secondary text-muted-foreground"
+              }`}
           >
             <SlidersHorizontal className="w-4 h-4" />
             {activeFilterCount > 0 && !showFilters && (
@@ -223,11 +223,10 @@ export default function SearchPage() {
             <button
               key={opt.value}
               onClick={() => handleFilterChange(opt.value)}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-medium transition-all ${
-                genderFilter === opt.value
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-medium transition-all ${genderFilter === opt.value
                   ? "gradient-primary text-primary-foreground shadow-glow"
                   : "bg-secondary text-muted-foreground hover:text-foreground"
-              }`}
+                }`}
             >
               <span>{opt.emoji}</span>
               <span>{opt.label}</span>
@@ -237,9 +236,8 @@ export default function SearchPage() {
 
         {/* Swipe counter badge */}
         <div className="mt-2 flex items-center justify-center gap-2">
-          <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${
-            isPaid ? "bg-amber-500/10 text-amber-600 dark:text-amber-400" : "bg-primary/10 text-primary"
-          }`}>
+          <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${isPaid ? "bg-amber-500/10 text-amber-600 dark:text-amber-400" : "bg-primary/10 text-primary"
+            }`}>
             {isPaid ? (
               <>
                 <Coins className="w-3 h-3" />
@@ -308,9 +306,8 @@ export default function SearchPage() {
                     const selected = selectedInterests.includes(interest);
                     return (
                       <button key={interest} onClick={() => toggleInterest(interest)}
-                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                          selected ? "gradient-primary text-primary-foreground shadow-glow" : "bg-secondary text-muted-foreground hover:text-foreground"
-                        }`}>
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${selected ? "gradient-primary text-primary-foreground shadow-glow" : "bg-secondary text-muted-foreground hover:text-foreground"
+                          }`}>
                         {interest}
                       </button>
                     );
@@ -347,7 +344,7 @@ export default function SearchPage() {
             <p className="text-muted-foreground text-sm mt-1">
               {activeFilterCount > 0 ? "Try adjusting your filters" : "Check back later!"}
             </p>
-            <button onClick={() => { setCurrentIndex(0); refetch(); }}
+            <button onClick={() => { setCurrentIndex(0); setSearchSeed(s => s + 1); }}
               className="mt-4 px-6 py-2 rounded-full gradient-primary text-primary-foreground text-sm font-medium shadow-glow">Refresh</button>
           </motion.div>
         )}

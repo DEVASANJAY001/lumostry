@@ -11,7 +11,7 @@ import { ArrowRight, ArrowLeft, Sparkles, User, Heart, Star, Camera } from "luci
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { format, differenceInYears } from "date-fns";
-
+import ImageCropDialog from "@/components/ImageCropDialog";
 const INTERESTS = [
   "Music", "Travel", "Gaming", "Fitness", "Photography",
   "Cooking", "Reading", "Movies", "Art", "Tech",
@@ -26,8 +26,8 @@ const GENDERS = [
 ];
 
 const PREFERENCES = [
-  { value: "male" as const, label: "Men", icon: "👨" },
-  { value: "female" as const, label: "Women", icon: "👩" },
+  { value: "male" as const, label: "Male", icon: "👨" },
+  { value: "female" as const, label: "Female", icon: "👩" },
   { value: "everyone" as const, label: "Everyone", icon: "💜" },
 ];
 
@@ -43,13 +43,26 @@ export default function OnboardingPage() {
   });
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
+  const [customInterest, setCustomInterest] = useState("");
   const updateProfile = useUpdateProfile();
   const navigate = useNavigate();
   const { user } = useAuth();
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) { setAvatarFile(file); setAvatarPreview(URL.createObjectURL(file)); }
+    if (file) {
+      const reader = new FileReader();
+      reader.addEventListener("load", () => setCropImageSrc(reader.result?.toString() || null));
+      reader.readAsDataURL(file);
+    }
+    if (e.target) e.target.value = "";
+  };
+
+  const handleCropSubmit = (croppedFile: File) => {
+    setAvatarFile(croppedFile);
+    setAvatarPreview(URL.createObjectURL(croppedFile));
+    setCropImageSrc(null);
   };
 
   const toggleInterest = (interest: string) => {
@@ -59,9 +72,36 @@ export default function OnboardingPage() {
     }));
   };
 
+  const addCustomInterest = () => {
+    const trimmed = customInterest.trim();
+    if (trimmed && !form.interests.includes(trimmed)) {
+      setForm((f) => ({ ...f, interests: [...f.interests, trimmed] }));
+      setCustomInterest("");
+    }
+  };
+
   const handleFinish = async () => {
     if (!user) return;
     try {
+      // Check for duplicate username
+      if (!form.username) {
+        toast.error("Please choose a username");
+        return;
+      }
+
+      const { data: existingUser, error: checkError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("username", form.username)
+        .neq("user_id", user.id)
+        .maybeSingle();
+
+      if (checkError) throw checkError;
+
+      if (existingUser) {
+        toast.error("Username is already taken. Please choose another one.");
+        return;
+      }
       let avatar_url: string | null = null;
       if (avatarFile) {
         const ext = avatarFile.name.split(".").pop();
@@ -80,8 +120,7 @@ export default function OnboardingPage() {
         avatar_url, profile_complete: true,
       });
       toast.success("Welcome to Lumos ✨");
-      // Force navigation to discover after profile completion
-      window.location.href = "/discover";
+      navigate("/discover");
     } catch (err: any) { toast.error(err.message); }
   };
 
@@ -135,9 +174,8 @@ export default function OnboardingPage() {
         <div className="grid grid-cols-2 gap-2">
           {GENDERS.map((g) => (
             <button key={g.value} onClick={() => setForm({ ...form, gender: g.value })}
-              className={`p-3 rounded-xl border text-sm font-medium transition-all ${
-                form.gender === g.value ? "border-primary bg-primary/8 text-primary" : "border-border bg-secondary text-foreground hover:border-primary/40"
-              }`}>
+              className={`p-3 rounded-xl border text-sm font-medium transition-all ${form.gender === g.value ? "border-primary bg-primary/8 text-primary" : "border-border bg-secondary text-foreground hover:border-primary/40"
+                }`}>
               <span className="mr-1">{g.icon}</span> {g.label}
             </button>
           ))}
@@ -148,9 +186,8 @@ export default function OnboardingPage() {
         <div className="grid grid-cols-3 gap-2">
           {PREFERENCES.map((p) => (
             <button key={p.value} onClick={() => setForm({ ...form, preference: p.value })}
-              className={`p-3 rounded-xl border text-sm font-medium transition-all ${
-                form.preference === p.value ? "border-primary bg-primary/8 text-primary" : "border-border bg-secondary text-foreground hover:border-primary/40"
-              }`}>
+              className={`p-3 rounded-xl border text-sm font-medium transition-all ${form.preference === p.value ? "border-primary bg-primary/8 text-primary" : "border-border bg-secondary text-foreground hover:border-primary/40"
+                }`}>
               <span className="mr-1">{p.icon}</span> {p.label}
             </button>
           ))}
@@ -171,14 +208,30 @@ export default function OnboardingPage() {
         <div className="flex flex-wrap gap-2">
           {INTERESTS.map((interest) => (
             <button key={interest} onClick={() => toggleInterest(interest)}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
-                form.interests.includes(interest)
-                  ? "gradient-primary text-primary-foreground shadow-glow"
-                  : "bg-secondary text-muted-foreground hover:text-foreground border border-border"
-              }`}>
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${form.interests.includes(interest)
+                ? "gradient-primary text-primary-foreground shadow-glow"
+                : "bg-secondary text-muted-foreground hover:text-foreground border border-border"
+                }`}>
               {interest}
             </button>
           ))}
+          {form.interests.filter(i => !INTERESTS.includes(i)).map(interest => (
+            <button key={interest} onClick={() => toggleInterest(interest)}
+              className="px-3 py-1.5 rounded-full text-sm font-medium transition-all gradient-primary text-primary-foreground shadow-glow">
+              {interest}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex gap-2 mt-3">
+          <Input
+            placeholder="Add a custom interest..."
+            value={customInterest}
+            onChange={(e) => setCustomInterest(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCustomInterest(); } }}
+            className="bg-secondary border-0 h-10"
+          />
+          <Button type="button" onClick={addCustomInterest} className="h-10 px-4 rounded-xl gradient-primary text-primary-foreground shadow-glow">Add</Button>
         </div>
       </div>
     </motion.div>,
@@ -216,6 +269,15 @@ export default function OnboardingPage() {
             step < 2 ? <>Next <ArrowRight className="w-4 h-4 ml-1" /></> : <>Let's Go! <Sparkles className="w-4 h-4 ml-1" /></>}
         </Button>
       </div>
+
+      {cropImageSrc && (
+        <ImageCropDialog
+          imageSrc={cropImageSrc}
+          onClose={() => setCropImageSrc(null)}
+          onCropSubmit={handleCropSubmit}
+          initialAspectRatio={1}
+        />
+      )}
     </div>
   );
 }

@@ -276,7 +276,14 @@ export default function ChatConversationPage() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-1">
+      <div className="flex-1 overflow-y-auto p-4 space-y-1 relative bg-secondary/10">
+        {messages.length === 0 && !isTyping && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center text-muted-foreground opacity-70">
+            <Heart className="w-12 h-12 mb-3 text-primary/40" />
+            <p className="text-sm font-medium">Say hello to {otherProfile?.name || otherProfile?.username || "your match"}!</p>
+            <p className="text-xs mt-1">Break the ice and start the conversation.</p>
+          </div>
+        )}
         {groupedMessages.map((group) => (
           <div key={group.date}>
             {/* Date separator */}
@@ -301,11 +308,10 @@ export default function ChatConversationPage() {
                   >
                     <div className="relative group">
                       <div
-                        className={`max-w-[75%] px-4 py-2.5 text-sm relative ${
-                          isMine
-                            ? `gradient-primary text-primary-foreground ${isConsecutive ? "rounded-2xl rounded-tr-lg" : "rounded-2xl rounded-br-lg"}`
-                            : `bg-card border border-border text-foreground ${isConsecutive ? "rounded-2xl rounded-tl-lg" : "rounded-2xl rounded-bl-lg"}`
-                        }`}
+                        className={`max-w-[75%] px-4 py-2.5 text-sm relative shadow-sm ${isMine
+                            ? `gradient-primary text-primary-foreground ${isConsecutive ? "rounded-2xl rounded-tr-[4px]" : "rounded-2xl rounded-br-[4px]"}`
+                            : `bg-card border border-border text-card-foreground ${isConsecutive ? "rounded-2xl rounded-tl-[4px]" : "rounded-2xl rounded-bl-[4px]"}`
+                          }`}
                         onDoubleClick={() => setActiveReaction(activeReaction === msg.id ? null : msg.id)}
                       >
                         {msg.message_type === "image" ? (
@@ -374,45 +380,49 @@ export default function ChatConversationPage() {
         ))}
 
         {isTyping && (
-          <div className="mt-3">
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-3">
             <TypingIndicator />
-          </div>
+          </motion.div>
         )}
 
         <div ref={messagesEndRef} />
       </div>
 
+      <div ref={messagesEndRef} />
+
       {/* Input - polished */}
-      <form
-        onSubmit={handleSend}
-        className="flex items-center gap-2 p-3 bg-card/80 backdrop-blur-xl border-t border-border"
-      >
-        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={uploadingPhoto}
-          className="p-2.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
+      <div className="safe-bottom bg-background">
+        <form
+          onSubmit={handleSend}
+          className="flex items-center gap-2 p-3 bg-card/90 backdrop-blur-xl border-t border-border"
         >
-          {uploadingPhoto ? <Loader2 className="w-5 h-5 animate-spin" /> : <ImagePlus className="w-5 h-5" />}
-        </button>
-        <Input
-          value={newMessage}
-          onChange={handleInputChange}
-          placeholder="Type a message..."
-          className="flex-1 bg-secondary border-0 rounded-full px-4 h-10 focus-visible:ring-1 focus-visible:ring-primary/50"
-        />
-        <motion.div whileTap={{ scale: 0.85 }}>
-          <Button
-            type="submit"
-            size="icon"
-            disabled={!newMessage.trim() || sendMutation.isPending}
-            className="rounded-full gradient-primary text-primary-foreground shadow-glow w-10 h-10 flex-shrink-0"
+          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploadingPhoto}
+            className="p-2.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
           >
-            <Send className="w-4 h-4" />
-          </Button>
-        </motion.div>
-      </form>
+            {uploadingPhoto ? <Loader2 className="w-5 h-5 animate-spin" /> : <ImagePlus className="w-5 h-5" />}
+          </button>
+          <Input
+            value={newMessage}
+            onChange={handleInputChange}
+            placeholder="Type a message..."
+            className="flex-1 bg-secondary border-0 rounded-full px-4 h-10 focus-visible:ring-1 focus-visible:ring-primary/50"
+          />
+          <motion.div whileTap={{ scale: 0.85 }}>
+            <Button
+              type="submit"
+              size="icon"
+              disabled={!newMessage.trim() || sendMutation.isPending}
+              className="rounded-full gradient-primary text-primary-foreground shadow-glow w-10 h-10 flex-shrink-0"
+            >
+              <Send className="w-4 h-4 ml-0.5" />
+            </Button>
+          </motion.div>
+        </form>
+      </div>
 
       <ReportUserModal
         reportedUserId={userId!}
