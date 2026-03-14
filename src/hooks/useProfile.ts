@@ -35,8 +35,18 @@ export function useProfile() {
         .from("profiles")
         .select("*")
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
       if (error) throw error;
+      if (!data) {
+        // Auto-create profile if missing
+        const { data: newProfile, error: insertErr } = await supabase
+          .from("profiles")
+          .insert({ user_id: user.id, name: user.user_metadata?.name || "" })
+          .select()
+          .single();
+        if (insertErr) throw insertErr;
+        return newProfile as Profile;
+      }
       return data as Profile;
     },
     enabled: !!user,
