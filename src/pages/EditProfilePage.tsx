@@ -6,16 +6,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import DateOfBirthPicker from "@/components/DateOfBirthPicker";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import BottomNav from "@/components/BottomNav";
 import {
-  ArrowLeft, Camera, Plus, X, Upload, Save, CalendarIcon,
+  ArrowLeft, Camera, Plus, X, Upload, Save,
 } from "lucide-react";
 import { format, differenceInYears } from "date-fns";
 import { cn } from "@/lib/utils";
+
 
 const INTERESTS = [
   "Music", "Travel", "Gaming", "Fitness", "Photography",
@@ -251,42 +251,14 @@ export default function EditProfilePage() {
             />
           </div>
           <div>
-            <label className="text-sm font-medium mb-1 block">Date of Birth</label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start bg-secondary border-border",
-                    !form.dateOfBirth && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="w-4 h-4 mr-2" />
-                  {form.dateOfBirth
-                    ? format(form.dateOfBirth, "PPP")
-                    : "Select your birthday"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={form.dateOfBirth || undefined}
-                  onSelect={(date) => setForm({ ...form, dateOfBirth: date || null })}
-                  disabled={(date) =>
-                    date > new Date() || date < new Date("1920-01-01")
-                  }
-                  defaultMonth={form.dateOfBirth || new Date(2000, 0)}
-                  captionLayout="dropdown-buttons"
-                  fromYear={1920}
-                  toYear={new Date().getFullYear() - 18}
-                  initialFocus
-                  className={cn("p-3 pointer-events-auto")}
-                />
-              </PopoverContent>
-            </Popover>
+            <label className="text-sm font-medium mb-2 block">Date of Birth</label>
+            <DateOfBirthPicker
+              value={form.dateOfBirth}
+              onChange={(date) => setForm({ ...form, dateOfBirth: date })}
+            />
             {form.dateOfBirth && (
               <p className={cn(
-                "text-xs mt-1",
+                "text-xs mt-2",
                 differenceInYears(new Date(), form.dateOfBirth) < 18 ? "text-destructive" : "text-muted-foreground"
               )}>
                 Age: {differenceInYears(new Date(), form.dateOfBirth)}

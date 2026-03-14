@@ -4,15 +4,13 @@ import { useUpdateProfile } from "@/hooks/useProfile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import DateOfBirthPicker from "@/components/DateOfBirthPicker";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, ArrowLeft, Sparkles, User, Heart, Star, CalendarIcon } from "lucide-react";
+import { ArrowRight, ArrowLeft, Sparkles, User, Heart, Star, Camera } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { format, differenceInYears } from "date-fns";
-import { cn } from "@/lib/utils";
 
 const INTERESTS = [
   "Music", "Travel", "Gaming", "Fitness", "Photography",
@@ -96,36 +94,31 @@ export default function OnboardingPage() {
       </div>
       <div className="flex flex-col items-center gap-4">
         <label className="relative cursor-pointer group">
-          <div className="w-24 h-24 rounded-full border-2 border-dashed border-primary/40 flex items-center justify-center overflow-hidden bg-secondary group-hover:border-primary transition-colors">
+          <div className="w-28 h-28 rounded-full border-3 border-dashed border-primary/40 flex items-center justify-center overflow-hidden bg-secondary group-hover:border-primary transition-all shadow-lg">
             {avatarPreview ? (
               <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
             ) : (
-              <div className="flex flex-col items-center"><span className="text-2xl">📸</span><span className="text-[10px] text-muted-foreground mt-0.5">Required</span></div>
+              <div className="flex flex-col items-center"><span className="text-3xl">📸</span><span className="text-[10px] text-muted-foreground mt-1">Tap to add</span></div>
             )}
+          </div>
+          <div className="absolute bottom-0 right-0 w-8 h-8 rounded-full gradient-primary flex items-center justify-center shadow-glow">
+            <Camera className="w-4 h-4 text-primary-foreground" />
           </div>
           <input type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
         </label>
+        <p className="text-xs text-muted-foreground">Profile photo required</p>
         <Input placeholder="Choose a username" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} className="bg-secondary border-0 text-center h-11" />
         <div className="w-full">
-          <label className="text-sm font-medium mb-1 block text-center">Date of Birth</label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className={cn("w-full justify-center bg-secondary border-0 h-11", !form.dateOfBirth && "text-muted-foreground")}>
-                <CalendarIcon className="w-4 h-4 mr-2" />
-                {form.dateOfBirth ? format(form.dateOfBirth, "PPP") : "Select your birthday"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="center">
-              <Calendar mode="single" selected={form.dateOfBirth || undefined} onSelect={(date) => setForm({ ...form, dateOfBirth: date || null })}
-                disabled={(date) => date > new Date() || date < new Date("1920-01-01")} defaultMonth={new Date(2000, 0)}
-                captionLayout="dropdown-buttons" fromYear={1920} toYear={new Date().getFullYear() - 18} initialFocus className={cn("p-3 pointer-events-auto")} />
-            </PopoverContent>
-          </Popover>
+          <label className="text-sm font-medium mb-2 block text-center">Date of Birth</label>
+          <DateOfBirthPicker
+            value={form.dateOfBirth}
+            onChange={(date) => setForm({ ...form, dateOfBirth: date })}
+          />
           {form.dateOfBirth && differenceInYears(new Date(), form.dateOfBirth) < 18 && (
-            <p className="text-xs text-destructive mt-1 text-center">You must be 18+</p>
+            <p className="text-xs text-destructive mt-2 text-center">You must be 18+</p>
           )}
           {form.dateOfBirth && differenceInYears(new Date(), form.dateOfBirth) >= 18 && (
-            <p className="text-xs text-muted-foreground mt-1 text-center">Age: {differenceInYears(new Date(), form.dateOfBirth)} ✓</p>
+            <p className="text-xs text-muted-foreground mt-2 text-center">Age: {differenceInYears(new Date(), form.dateOfBirth)} ✓</p>
           )}
         </div>
       </div>
