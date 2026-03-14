@@ -5,17 +5,22 @@ import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
 import PageTransition from "@/components/PageTransition";
 import VerifiedBadge from "@/components/VerifiedBadge";
+import ImageCropDialog from "@/components/ImageCropDialog";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { Settings, Edit, Camera, Users, ChevronRight, Wallet, Image, CheckCircle, Eye } from "lucide-react";
+import { Settings, Edit, Camera, Users, ChevronRight, Wallet, Image as ImageIcon, CheckCircle, Eye, Loader2, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 export default function ProfilePage() {
-  const { data: profile } = useProfile();
+  const { data: profile, refetch: refetchProfile } = useProfile();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [photoIndex, setPhotoIndex] = useState(0);
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: matchCount } = useQuery({
     queryKey: ["match-count", user?.id],
@@ -61,16 +66,54 @@ export default function ProfilePage() {
       onClick: () => navigate("/friend-requests"),
     }] : []),
     { icon: Edit, label: "Edit Profile", onClick: () => navigate("/edit-profile") },
-    { icon: Image, label: "My Gallery", onClick: () => navigate("/my-gallery") },
+    { icon: ImageIcon, label: "My Gallery", onClick: () => navigate("/my-gallery") },
     { icon: Eye, label: "Profile Visitors", onClick: () => navigate("/profile-visitors") },
     { icon: Wallet, label: `Wallet · ${walletBalance} pts`, onClick: () => navigate("/wallet") },
     ...(!profile?.is_verified ? [{ icon: CheckCircle, label: "Verify Profile", onClick: () => navigate("/verify") }] : []),
   ];
 
+  const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.addEventListener("load", () => setCropImageSrc(reader.result?.toString() || null));
+      reader.readAsDataURL(file);
+    }
+    if (e.target) e.target.value = "";
+  };
+
+  const handleCropSubmit = async (croppedFile: File) => {
+    if (!user) return;
+    setCropImageSrc(null);
+    setUploadingAvatar(true);
+    try {
+      const fileExt = croppedFile.name.split(".").pop();
+      const filePath = `${user.id}/${crypto.randomUUID()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage.from("avatars").upload(filePath, croppedFile);
+      if (uploadError) throw uploadError;
+      
+      const { data } = supabase.storage.from("avatars").getPublicUrl(filePath);
+      const { error: updateError } = await supabase.from("profiles").update({ avatar_url: data.publicUrl }).eq("id", profile?.id);
+      if (updateError) throw updateError;
+      
+      toast.success("Profile photo updated!");
+      refetchProfile();
+    } catch (error: any) {
+      toast.error("Failed to update photo", { description: error.message });
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
   return (
     <PageTransition className="min-h-screen pb-20">
       <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border px-5 py-3 flex items-center justify-between">
-        <h1 className="text-lg font-heading font-semibold">Profile</h1>
+        <div className="flex items-center gap-3">
+          <button onClick={() => navigate(-1)} className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center transition-all active:scale-90 flex-shrink-0">
+            <ArrowLeft className="w-4 h-4 text-foreground" />
+          </button>
+          <h1 className="text-lg font-heading font-semibold">Profile</h1>
+        </div>
         <button onClick={() => navigate("/settings")} className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center">
           <Settings className="w-4 h-4 text-muted-foreground" />
         </button>
@@ -79,11 +122,20 @@ export default function ProfilePage() {
       <div className="p-5">
         {/* Photo */}
         {allPhotos.length > 0 ? (
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="relative aspect-[4/3] rounded-2xl overflow-hidden mb-5 shadow-card">
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="relative aspect-[4/3] rounded-2xl overflow-hidden mb-5 shadow-card group">
             <img src={allPhotos[photoIndex]} alt="" className="w-full h-full object-cover" />
+            <div className="absolute top-3 right-3 z-20">
+              <button 
+                onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+                disabled={uploadingAvatar}
+                className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/60 transition-colors border border-white/20"
+              >
+                {uploadingAvatar ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-5 h-5" />}
+              </button>
+            </div>
             {allPhotos.length > 1 && (
               <>
-                <div className="absolute top-3 left-3 right-3 flex gap-1 z-10">
+                <div className="absolute top-3 left-3 right-16 flex gap-1 z-10">
                   {allPhotos.map((_, i) => (
                     <div key={i} className={`h-[2px] flex-1 rounded-full transition-all ${i === photoIndex ? "bg-primary-foreground" : "bg-primary-foreground/25"}`} />
                   ))}
@@ -95,6 +147,7 @@ export default function ProfilePage() {
               </>
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-background/50 to-transparent pointer-events-none" />
+            <input type="file" ref={fileInputRef} onChange={handleAvatarSelect} accept="image/*" className="hidden" />
           </motion.div>
         ) : (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
@@ -111,7 +164,7 @@ export default function ProfilePage() {
           <div className="flex items-center gap-2">
             <h2 className="text-xl font-heading font-semibold">{profile?.name || profile?.username || "User"}</h2>
             {profile?.age && <span className="text-muted-foreground">{profile.age}</span>}
-            {profile?.is_verified && <VerifiedBadge size="sm" />}
+            {profile?.is_verified && <VerifiedBadge size="sm" verifiedUntil={(profile as any)?.verified_until} />}
           </div>
           {profile?.username && <p className="text-muted-foreground text-sm">@{profile.username}</p>}
           {profile?.bio && <p className="text-sm text-muted-foreground mt-2 leading-relaxed">{profile.bio}</p>}
@@ -164,6 +217,14 @@ export default function ProfilePage() {
       </div>
 
       <BottomNav />
+      {cropImageSrc && (
+        <ImageCropDialog
+          imageSrc={cropImageSrc}
+          onClose={() => setCropImageSrc(null)}
+          onCropSubmit={handleCropSubmit}
+          initialAspectRatio={1}
+        />
+      )}
     </PageTransition>
   );
 }

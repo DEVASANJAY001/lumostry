@@ -87,7 +87,7 @@ function AppRoutes() {
       <Route path="/gallery/:userId" element={<UserGalleryPage />} />
       <Route path="/who-liked-me" element={<WhoLikedMePage />} />
       <Route path="/profile-visitors" element={<ProfileVisitorsPage />} />
-      <Route path="*" element={<NotFound />} />
+      <Route path="*" element={<Navigate to="/discover" replace />} />
     </Routes>
   );
 }

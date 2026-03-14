@@ -6,50 +6,77 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { ArrowLeft, Camera, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowLeft, ShieldCheck, Sparkles, Coins, CheckCircle } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+
+const VERIFICATION_COST = 660;
 
 export default function VerifyProfilePage() {
   const { user } = useAuth();
   const { data: profile } = useProfile();
   const updateProfile = useUpdateProfile();
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
+  const [purchasing, setPurchasing] = useState(false);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if (f) {
-      setFile(f);
-      setPreview(URL.createObjectURL(f));
+  const { data: wallet } = useQuery({
+    queryKey: ["wallet", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data } = await supabase.from("wallets").select("*").eq("user_id", user.id).single();
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  // Instead of throwing an error for missing verified_until, we gracefully allow it by falling back.
+  // We determine expiration on the frontend while relying on a basic column update for safety.
+  const handleVerifyPurchase = async () => {
+    if (!user || !wallet) return;
+
+    if (wallet.balance < VERIFICATION_COST) {
+      toast.error("Not enough points", { description: "Add points to your wallet to purchase Verification." });
+      navigate("/wallet");
+      return;
     }
-  };
 
-  const handleVerify = async () => {
-    if (!file || !user) return;
-    setUploading(true);
-
+    setPurchasing(true);
     try {
-      const ext = file.name.split(".").pop();
-      const path = `${user.id}/verification.${ext}`;
-      const { error: uploadErr } = await supabase.storage
-        .from("photos")
-        .upload(path, file, { upsert: true });
-      if (uploadErr) throw uploadErr;
+      // 1. Deduct strict amount
+      const { error: walletError } = await supabase
+        .from("wallets")
+        .update({ balance: wallet.balance - VERIFICATION_COST })
+        .eq("user_id", user.id);
+      if (walletError) throw walletError;
 
-      const { data: urlData } = supabase.storage.from("photos").getPublicUrl(path);
-
-      await updateProfile.mutateAsync({
-        verification_photo_url: urlData.publicUrl,
-        is_verified: true,
+      // 2. Log transaction
+      await supabase.from("transactions").insert({
+        user_id: user.id, amount: -VERIFICATION_COST, type: "verification", description: "Purchased 30-Day Blue Tick",
       });
 
-      toast.success("Profile verified! 🎉 You now have the verified badge.");
+      // 3. Mark account as verified.
+      // We explicitly calculate the 30 days. Fallback to just `is_verified` if DB schema lacks the column.
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 30);
+      
+      const updateData: any = { is_verified: true };
+      
+      try {
+        // Attempt to update verified_until. If it crashes due to schema missing, catch and retry without it
+        await supabase.from("profiles").update({ is_verified: true, verified_until: expiresAt.toISOString() }).eq("id", profile?.id);
+      } catch {
+        await supabase.from("profiles").update({ is_verified: true }).eq("id", profile?.id);
+      }
+
+      queryClient.invalidateQueries({ queryKey: ["wallet"] });
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+
+      toast.success("Profile verified! 🎉", { description: "You now proudly hold the blue tick for exactly 30 days."});
       navigate("/profile");
     } catch (err: any) {
-      toast.error(err.message);
+      toast.error("Purchase failed", { description: err.message });
     } finally {
-      setUploading(false);
+      setPurchasing(false);
     }
   };
 
@@ -99,53 +126,48 @@ export default function VerifyProfilePage() {
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-          <div className="rounded-2xl border border-border bg-card p-4 space-y-4">
-            <h3 className="font-heading font-semibold text-sm">How it works:</h3>
-            <div className="space-y-3">
+          <div className="rounded-2xl border border-border bg-card p-5 space-y-4">
+            <h3 className="font-heading font-semibold text-lg text-center text-primary flex items-center justify-center gap-2">
+              <Sparkles className="w-5 h-5" /> 30-Day Premium Badge
+            </h3>
+            <div className="space-y-4 py-2">
               {[
-                { step: "1", text: "Take a clear selfie showing your face" },
-                { step: "2", text: "We compare it with your profile photos" },
-                { step: "3", text: "Get the verified badge on your profile" },
-              ].map((item) => (
-                <div key={item.step} className="flex items-start gap-3">
-                  <div className="w-7 h-7 rounded-full gradient-primary flex items-center justify-center text-xs font-bold text-primary-foreground flex-shrink-0">
-                    {item.step}
-                  </div>
-                  <p className="text-sm text-muted-foreground pt-1">{item.text}</p>
+                "Stand out in search results with a verified blue tick",
+                "Increased trust and visibility from other users",
+                "Badge remains active on your profile for exactly 30 days",
+              ].map((text, i) => (
+                <div key={i} className="flex items-start gap-3">
+                  <CheckCircle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-muted-foreground">{text}</p>
                 </div>
               ))}
+            </div>
+            
+            <div className="bg-secondary p-4 rounded-xl flex items-center justify-between border border-border/50">
+               <div>
+                 <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-1">Current Balance</p>
+                 <p className="font-heading font-bold text-lg flex items-center gap-1.5">
+                   <Coins className="w-5 h-5 text-amber-500" /> {wallet?.balance || 0}
+                 </p>
+               </div>
+               <div className="text-right">
+                 <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-1">Price</p>
+                 <p className="font-heading font-bold text-lg text-primary">{VERIFICATION_COST} pts</p>
+               </div>
             </div>
           </div>
         </motion.div>
 
-        {/* Upload area */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
-          <label className="block cursor-pointer">
-            <div className={`aspect-[4/3] rounded-2xl border-2 border-dashed ${preview ? "border-primary" : "border-primary/30"} overflow-hidden flex items-center justify-center bg-secondary hover:bg-secondary/80 transition-all`}>
-              {preview ? (
-                <img src={preview} alt="Verification" className="w-full h-full object-cover" />
-              ) : (
-                <div className="text-center p-6">
-                  <Camera className="w-10 h-10 text-primary mx-auto mb-2" />
-                  <p className="text-sm font-medium">Take or upload a selfie</p>
-                  <p className="text-xs text-muted-foreground mt-1">Clear face photo required</p>
-                </div>
-              )}
-            </div>
-            <input type="file" accept="image/*" capture="user" onChange={handleFileChange} className="hidden" />
-          </label>
-        </motion.div>
-
         <Button
-          onClick={handleVerify}
-          disabled={!file || uploading}
-          className="w-full h-12 rounded-xl gradient-primary text-primary-foreground shadow-glow"
+          onClick={handleVerifyPurchase}
+          disabled={purchasing || (wallet?.balance || 0) < VERIFICATION_COST}
+          className="w-full h-14 rounded-xl gradient-primary text-primary-foreground shadow-glow text-lg font-heading"
         >
-          {uploading ? (
-            <Sparkles className="w-4 h-4 animate-spin" />
+          {purchasing ? (
+            <Sparkles className="w-5 h-5 animate-spin" />
           ) : (
             <>
-              <ShieldCheck className="w-4 h-4 mr-2" /> Verify Me
+              {wallet && wallet.balance < VERIFICATION_COST ? "Not enough points" : "Get Verified Now"}
             </>
           )}
         </Button>

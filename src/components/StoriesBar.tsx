@@ -31,6 +31,24 @@ export default function StoriesBar() {
   const [viewingGroup, setViewingGroup] = useState<StoryGroup | null>(null);
   const [storyIndex, setStoryIndex] = useState(0);
 
+  const [watchedStories, setWatchedStories] = useState<string[]>(() => {
+    try {
+      const stored = localStorage.getItem("watched_stories");
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const markAsWatched = (userId: string) => {
+    setWatchedStories((prev) => {
+      if (prev.includes(userId)) return prev;
+      const updated = [...prev, userId];
+      localStorage.setItem("watched_stories", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   const { data: storyGroups = [] } = useQuery({
     queryKey: ["stories"],
     queryFn: async () => {
@@ -96,6 +114,7 @@ export default function StoriesBar() {
   const otherStories = storyGroups.filter((g) => g.user_id !== user?.id);
 
   const openStory = (group: StoryGroup) => {
+    markAsWatched(group.user_id);
     setViewingGroup(group);
     setStoryIndex(0);
   };
@@ -141,14 +160,16 @@ export default function StoriesBar() {
         </button>
 
         {/* Other users' stories */}
-        {otherStories.map((group) => (
-          <button
-            key={group.user_id}
-            onClick={() => openStory(group)}
-            className="flex-shrink-0 flex flex-col items-center gap-1"
-          >
-            <div className="w-16 h-16 rounded-full p-[2px] bg-gradient-to-br from-primary to-accent">
-              <div className="w-full h-full rounded-full overflow-hidden border-2 border-background">
+        {otherStories.map((group) => {
+          const isWatched = watchedStories.includes(group.user_id);
+          return (
+            <button
+              key={group.user_id}
+              onClick={() => openStory(group)}
+              className="flex-shrink-0 flex flex-col items-center gap-1 active:scale-95 transition-transform"
+            >
+              <div className={`w-16 h-16 rounded-full p-[2px] transition-colors duration-500 ${isWatched ? "bg-muted" : "bg-gradient-to-tr from-amber-400 via-rose-500 to-fuchsia-600"}`}>
+                <div className="w-full h-full rounded-full overflow-hidden border-2 border-background">
                 {group.profile.avatar_url ? (
                   <img src={group.profile.avatar_url} alt="" className="w-full h-full object-cover" />
                 ) : (
@@ -156,11 +177,14 @@ export default function StoriesBar() {
                     {group.profile.name?.[0]}
                   </div>
                 )}
+                </div>
               </div>
-            </div>
-            <span className="text-[10px] truncate w-16 text-center">{group.profile.name?.split(" ")[0]}</span>
-          </button>
-        ))}
+              <span className={`text-[10px] truncate w-16 text-center transition-colors ${isWatched ? "text-muted-foreground" : "text-foreground font-medium"}`}>
+                {group.profile.name?.split(" ")[0]}
+              </span>
+            </button>
+          );
+        })}
 
         {/* My story circle (tap to view) */}
         {myStories && (

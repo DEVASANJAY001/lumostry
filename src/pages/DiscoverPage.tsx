@@ -11,7 +11,7 @@ import BoostModal from "@/components/BoostModal";
 import PageTransition from "@/components/PageTransition";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Undo2, Zap, Heart } from "lucide-react";
+import { Sparkles, Undo2, Zap, Heart, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { Profile } from "@/hooks/useProfile";
 
@@ -100,7 +100,12 @@ export default function DiscoverPage() {
     <PageTransition className="min-h-screen pb-20 bg-background">
       {/* Clean minimal header */}
       <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl px-5 py-3 flex items-center justify-between">
-        <h1 className="text-xl font-heading font-semibold text-gradient tracking-tight">Lumos</h1>
+        <div className="flex items-center gap-3">
+          <button onClick={() => navigate(-1)} className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center transition-all active:scale-90">
+            <ArrowLeft className="w-4 h-4 text-foreground" />
+          </button>
+          <h1 className="text-xl font-heading font-semibold text-gradient tracking-tight">Lumos</h1>
+        </div>
         <div className="flex items-center gap-1.5">
           <button
             onClick={handleRewind}

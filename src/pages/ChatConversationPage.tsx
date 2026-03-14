@@ -6,12 +6,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Send, MoreVertical, Shield, Flag, ImagePlus, Loader2, Check, CheckCheck, Heart } from "lucide-react";
+import { ArrowLeft, Send, MoreVertical, Shield, Flag, ImagePlus, Loader2, Check, CheckCheck, Heart, X } from "lucide-react";
 import ReportUserModal from "@/components/ReportUserModal";
 import TypingIndicator from "@/components/TypingIndicator";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import type { Profile } from "@/hooks/useProfile";
+import Lightbox from "@/components/Lightbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,6 +43,12 @@ export default function ChatConversationPage() {
   const [isTyping, setIsTyping] = useState(false);
   const [activeReaction, setActiveReaction] = useState<string | null>(null);
   const [reactions, setReactions] = useState<Record<string, string>>({});
+  const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
+  const [selectedPhotoPreview, setSelectedPhotoPreview] = useState<string | null>(null);
+  const [isOneTimeView, setIsOneTimeView] = useState(false);
+  const [viewingOneTimeImage, setViewingOneTimeImage] = useState<string | null>(null);
+  const [viewingMsgId, setViewingMsgId] = useState<string | null>(null);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -170,36 +177,75 @@ export default function ChatConversationPage() {
     onSuccess: () => { toast.success("User blocked"); navigate("/chats"); },
   });
 
-  const handleSend = (e: React.FormEvent) => {
+  const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim()) return;
-    sendMutation.mutate(newMessage.trim());
-    setNewMessage("");
+    if (!newMessage.trim() && !selectedPhoto) return;
+
+    let photoUrl = null;
+    let messageType = "text";
+
+    if (selectedPhoto) {
+      setUploadingPhoto(true);
+      try {
+        const ext = selectedPhoto.name.split(".").pop();
+        const path = `${user!.id}/${Date.now()}.${ext}`;
+        const { error: uploadError } = await supabase.storage.from("chat-photos").upload(path, selectedPhoto);
+        if (uploadError) throw uploadError;
+        const { data: urlData } = supabase.storage.from("chat-photos").getPublicUrl(path);
+        photoUrl = urlData.publicUrl;
+        messageType = isOneTimeView ? "image_once" : "image";
+      } catch (err: any) {
+        toast.error("Failed to send photo");
+        setUploadingPhoto(false);
+        return;
+      }
+    }
+
+    if (photoUrl) {
+      const { error } = await supabase.from("messages").insert({
+        sender_id: user!.id, receiver_id: userId!, content: photoUrl, message_type: messageType,
+      });
+      if (error) { toast.error("Error sending image"); setUploadingPhoto(false); return; }
+      setSelectedPhoto(null);
+      setSelectedPhotoPreview(null);
+      setIsOneTimeView(false);
+      setUploadingPhoto(false);
+    }
+
+    if (newMessage.trim()) {
+      sendMutation.mutate(newMessage.trim());
+      setNewMessage("");
+    }
   };
 
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
     const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
     if (!allowedTypes.includes(file.type)) { toast.error("Please select a valid image file"); return; }
     if (file.size > 5 * 1024 * 1024) { toast.error("Image must be less than 5MB"); return; }
-    setUploadingPhoto(true);
-    try {
-      const ext = file.name.split(".").pop();
-      const path = `${user.id}/${Date.now()}.${ext}`;
-      const { error: uploadError } = await supabase.storage.from("chat-photos").upload(path, file);
-      if (uploadError) throw uploadError;
-      const { data: urlData } = supabase.storage.from("chat-photos").getPublicUrl(path);
-      const { error } = await supabase.from("messages").insert({
-        sender_id: user.id, receiver_id: userId!, content: urlData.publicUrl, message_type: "image",
-      });
-      if (error) throw error;
-      queryClient.invalidateQueries({ queryKey: ["messages", user.id, userId] });
-      queryClient.invalidateQueries({ queryKey: ["chats"] });
-    } catch { toast.error("Failed to send photo"); } finally {
-      setUploadingPhoto(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setSelectedPhoto(file);
+      setSelectedPhotoPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleViewOneTimeImage = (msgId: string, url: string) => {
+    setViewingOneTimeImage(url);
+    setViewingMsgId(msgId);
+  };
+
+  const handleCloseOneTimeImage = async () => {
+    if (viewingMsgId) {
+      await supabase.from("messages").update({ content: "viewed" }).eq("id", viewingMsgId);
+      queryClient.invalidateQueries({ queryKey: ["messages", user?.id, userId] });
     }
+    setViewingOneTimeImage(null);
+    setViewingMsgId(null);
   };
 
   const handleReaction = (msgId: string, emoji: string) => {
@@ -309,8 +355,8 @@ export default function ChatConversationPage() {
                     <div className="relative group">
                       <div
                         className={`max-w-[75%] px-4 py-2.5 text-sm relative shadow-sm ${isMine
-                            ? `gradient-primary text-primary-foreground ${isConsecutive ? "rounded-2xl rounded-tr-[4px]" : "rounded-2xl rounded-br-[4px]"}`
-                            : `bg-card border border-border text-card-foreground ${isConsecutive ? "rounded-2xl rounded-tl-[4px]" : "rounded-2xl rounded-bl-[4px]"}`
+                          ? `gradient-primary text-primary-foreground ${isConsecutive ? "rounded-2xl rounded-tr-[4px]" : "rounded-2xl rounded-br-[4px]"}`
+                          : `bg-card border border-border text-card-foreground ${isConsecutive ? "rounded-2xl rounded-tl-[4px]" : "rounded-2xl rounded-bl-[4px]"}`
                           }`}
                         onDoubleClick={() => setActiveReaction(activeReaction === msg.id ? null : msg.id)}
                       >
@@ -318,9 +364,28 @@ export default function ChatConversationPage() {
                           <img
                             src={msg.content}
                             alt="Photo"
-                            className="rounded-xl max-w-full max-h-60 object-cover cursor-pointer"
-                            onClick={() => window.open(msg.content, "_blank")}
+                            className="rounded-xl max-w-full max-h-60 object-cover cursor-pointer hover:opacity-95 transition-opacity"
+                            onClick={() => setLightboxImage(msg.content)}
                           />
+                        ) : msg.message_type === "image_once" ? (
+                          msg.content === "viewed" ? (
+                            <div className="flex items-center justify-center p-4 bg-secondary/50 rounded-xl w-40 h-32 border border-border">
+                              <p className="text-muted-foreground text-xs font-semibold flex flex-col items-center">
+                                <ImagePlus className="w-5 h-5 mb-1 opacity-50" />
+                                Viewed
+                              </p>
+                            </div>
+                          ) : (
+                            <div
+                              className="flex items-center justify-center p-4 bg-primary/10 rounded-xl w-40 h-32 border border-primary/20 cursor-pointer hover:bg-primary/20 transition-colors"
+                              onClick={() => handleViewOneTimeImage(msg.id, msg.content)}
+                            >
+                              <p className="text-primary text-xs font-semibold flex flex-col items-center">
+                                <Shield className="w-5 h-5 mb-1" />
+                                Tap to view
+                              </p>
+                            </div>
+                          )
                         ) : (
                           <p className="leading-relaxed">{msg.content}</p>
                         )}
@@ -392,6 +457,33 @@ export default function ChatConversationPage() {
 
       {/* Input - polished */}
       <div className="safe-bottom bg-background">
+        <AnimatePresence>
+          {selectedPhotoPreview && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
+              className="p-3 bg-card border-t border-border flex items-end gap-3"
+            >
+              <div className="relative">
+                <img src={selectedPhotoPreview} alt="Selected" className="h-24 rounded-lg object-cover border border-border" />
+                <button type="button" onClick={() => { setSelectedPhoto(null); setSelectedPhotoPreview(null); }} className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-destructive flex items-center justify-center text-white shadow-md hover:scale-110 transition-transform">
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+              <div className="flex-1 flex flex-col gap-2">
+                <Button
+                  type="button"
+                  variant={isOneTimeView ? "default" : "outline"}
+                  size="sm"
+                  className={`rounded-full self-start text-xs h-8 ${isOneTimeView ? "gradient-primary text-primary-foreground border-0" : ""}`}
+                  onClick={() => setIsOneTimeView(!isOneTimeView)}
+                >
+                  <Shield className="w-3.5 h-3.5 mr-1" />
+                  1-Time View
+                </Button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
         <form
           onSubmit={handleSend}
           className="flex items-center gap-2 p-3 bg-card/90 backdrop-blur-xl border-t border-border"
@@ -415,7 +507,7 @@ export default function ChatConversationPage() {
             <Button
               type="submit"
               size="icon"
-              disabled={!newMessage.trim() || sendMutation.isPending}
+              disabled={(!newMessage.trim() && !selectedPhoto) || sendMutation.isPending || uploadingPhoto}
               className="rounded-full gradient-primary text-primary-foreground shadow-glow w-10 h-10 flex-shrink-0"
             >
               <Send className="w-4 h-4 ml-0.5" />
@@ -430,6 +522,28 @@ export default function ChatConversationPage() {
         isOpen={showReport}
         onClose={() => setShowReport(false)}
       />
+
+      <AnimatePresence>
+        {viewingOneTimeImage && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4"
+          >
+            <button
+              className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+              onClick={handleCloseOneTimeImage}
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <img src={viewingOneTimeImage} alt="1-Time View" className="max-w-full max-h-full rounded-2xl object-scale-down" />
+            <p className="absolute bottom-10 text-white/70 text-sm font-medium">This photo will disappear after you close it.</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {lightboxImage && (
+        <Lightbox src={lightboxImage} onClose={() => setLightboxImage(null)} />
+      )}
     </div>
   );
 }

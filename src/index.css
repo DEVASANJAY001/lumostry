@@ -217,11 +217,11 @@
 
   /* Smooth interactive states */
   .tap-scale {
-    @apply transition-transform duration-150 active:scale-[0.96];
+    @apply transition-all duration-200 active:scale-[0.96] active:opacity-80;
   }
 
   .tap-scale-sm {
-    @apply transition-transform duration-100 active:scale-[0.92];
+    @apply transition-all duration-150 active:scale-[0.98] active:opacity-90;
   }
 
   /* Staggered fade-in for lists */

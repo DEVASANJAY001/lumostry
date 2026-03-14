@@ -7,7 +7,7 @@ import BottomNav from "@/components/BottomNav";
 import PageTransition from "@/components/PageTransition";
 import WhoLikedMeTab from "@/components/WhoLikedMeTab";
 import { motion } from "framer-motion";
-import { Heart, MessageCircle, Eye } from "lucide-react";
+import { Heart, MessageCircle, Eye, ArrowLeft } from "lucide-react";
 import type { Profile } from "@/hooks/useProfile";
 
 type Tab = "matches" | "liked-me";
@@ -44,6 +44,12 @@ export default function MatchesPage() {
   return (
     <PageTransition className="min-h-screen pb-20">
       <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border px-5 py-3">
+        <div className="flex items-center gap-3 mb-3">
+          <button onClick={() => navigate(-1)} className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center transition-all active:scale-90 flex-shrink-0">
+            <ArrowLeft className="w-4 h-4 text-foreground" />
+          </button>
+          <h1 className="text-xl font-heading font-bold text-gradient">Matches</h1>
+        </div>
         <div className="flex gap-2">
           <button
             onClick={() => setActiveTab("matches")}

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -5,9 +6,10 @@ import { useNavigate } from "react-router-dom";
 import BottomNav from "@/components/BottomNav";
 import PageTransition from "@/components/PageTransition";
 import { motion } from "framer-motion";
-import { MessageCircle } from "lucide-react";
+import { MessageCircle, ArrowLeft } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import type { Profile } from "@/hooks/useProfile";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 interface ChatPreview {
   profile: Profile;
@@ -28,6 +30,29 @@ const listItem = {
 export default function ChatsPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  const [watchedStories, setWatchedStories] = useState<string[]>(() => {
+    try {
+      const stored = localStorage.getItem("watched_stories");
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const markStoryAsWatched = (userId: string) => {
+    setWatchedStories((prev) => {
+      if (prev.includes(userId)) return prev;
+      const updated = [...prev, userId];
+      localStorage.setItem("watched_stories", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const handleOpenChat = (userId: string) => {
+    markStoryAsWatched(userId);
+    navigate(`/chat/${userId}`);
+  };
 
   const { data: chatPreviews = [], isLoading } = useQuery({
     queryKey: ["chats", user?.id],
@@ -62,7 +87,10 @@ export default function ChatsPage() {
 
   return (
     <PageTransition className="min-h-screen pb-20">
-      <div className="sticky top-0 z-40 bg-background/85 backdrop-blur-2xl border-b border-border/60 px-5 py-3.5">
+      <div className="sticky top-0 z-40 bg-background/85 backdrop-blur-2xl border-b border-border/60 px-5 py-3.5 flex items-center gap-3">
+        <button onClick={() => navigate(-1)} className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center transition-all active:scale-90 flex-shrink-0">
+          <ArrowLeft className="w-4 h-4 text-foreground" />
+        </button>
         <h1 className="text-lg font-heading font-semibold">Messages</h1>
       </div>
 
@@ -92,7 +120,49 @@ export default function ChatsPage() {
           <p className="text-muted-foreground text-sm mt-1.5">Match with someone to start chatting</p>
         </motion.div>
       ) : (
-        <div className="py-1">
+        <div className="py-2">
+          {/* Stories Row */}
+          <div className="mb-4">
+            <ScrollArea className="w-full whitespace-nowrap px-5">
+              <div className="flex w-max space-x-4 pb-4 pt-2">
+                {chatPreviews.map((chat, i) => {
+                  const isWatched = watchedStories.includes(chat.profile.user_id);
+                  return (
+                    <motion.div
+                      key={`story-${chat.profile.user_id}`}
+                      custom={i}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: i * 0.05, type: "spring", stiffness: 300, damping: 20 }}
+                      className="flex flex-col items-center gap-1.5 cursor-pointer group"
+                      onClick={() => handleOpenChat(chat.profile.user_id)}
+                    >
+                      <div className={`p-[2.5px] rounded-full transition-colors duration-300 ${isWatched ? "bg-border" : "bg-gradient-to-tr from-amber-400 via-rose-500 to-fuchsia-600"}`}>
+                        <div className="w-16 h-16 rounded-full overflow-hidden bg-background border-2 border-background p-0.5">
+                          {chat.profile.avatar_url ? (
+                            <img src={chat.profile.avatar_url} alt="" className="w-full h-full object-cover rounded-full group-hover:scale-105 transition-transform duration-300" />
+                          ) : (
+                            <div className="w-full h-full rounded-full bg-secondary flex items-center justify-center text-xl">
+                              {chat.profile.gender === "female" ? "👩" : "👨"}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <span className="text-[11px] font-medium text-muted-foreground max-w-[70px] truncate">
+                        {chat.profile.name || chat.profile.username}
+                      </span>
+                    </motion.div>
+                  );
+                })}
+              </div>
+              <ScrollBar orientation="horizontal" className="hidden" />
+            </ScrollArea>
+          </div>
+
+          <div className="px-5 mb-2">
+            <h2 className="text-sm font-semibold text-foreground/80 font-heading">Messages</h2>
+          </div>
+
           {chatPreviews.map((chat, i) => (
             <motion.button
               key={chat.profile.id}
@@ -101,8 +171,8 @@ export default function ChatsPage() {
               initial="hidden"
               animate="visible"
               whileTap={{ scale: 0.98, backgroundColor: "hsl(var(--secondary) / 0.5)" }}
-              onClick={() => navigate(`/chat/${chat.profile.user_id}`)}
-              className="w-full flex items-center gap-3 px-5 py-3.5 text-left transition-colors"
+              onClick={() => handleOpenChat(chat.profile.user_id)}
+              className="w-full flex items-center gap-3 px-5 py-3.5 text-left transition-colors hover:bg-secondary/30"
             >
               <div className="relative flex-shrink-0">
                 <div className="w-13 h-13 rounded-full overflow-hidden bg-secondary w-[52px] h-[52px]">

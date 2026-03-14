@@ -5,13 +5,18 @@ interface VerifiedBadgeProps {
   size?: "sm" | "md" | "lg";
   type?: "verified" | "premium" | "trusted";
   className?: string;
+  verifiedUntil?: string | null;
 }
 
 const sizeMap = { sm: "w-4 h-4", md: "w-5 h-5", lg: "w-7 h-7" };
 const containerSizeMap = { sm: "w-5 h-5", md: "w-6 h-6", lg: "w-8 h-8" };
 
-export default function VerifiedBadge({ size = "md", type = "verified", className = "" }: VerifiedBadgeProps) {
+export default function VerifiedBadge({ size = "md", type = "verified", className = "", verifiedUntil }: VerifiedBadgeProps) {
   const spring = { type: "spring" as const, stiffness: 300, damping: 15 };
+
+  if (verifiedUntil && new Date(verifiedUntil) < new Date()) {
+    return null; // Expired badge
+  }
 
   const Icon = type === "verified" ? CheckCircle : type === "premium" ? Star : Shield;
   const bg = type === "verified" ? "gradient-primary shadow-glow" : type === "premium" ? "bg-accent" : "bg-success";

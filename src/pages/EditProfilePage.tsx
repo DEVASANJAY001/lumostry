@@ -10,6 +10,7 @@ import DateOfBirthPicker from "@/components/DateOfBirthPicker";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import BottomNav from "@/components/BottomNav";
+import ImageCropDialog from "@/components/ImageCropDialog";
 import {
   ArrowLeft, Camera, Plus, X, Upload, Save,
 } from "lucide-react";
@@ -57,13 +58,22 @@ export default function EditProfilePage() {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(profile?.avatar_url || null);
   const [photos, setPhotos] = useState<string[]>(profile?.photos || []);
   const [uploading, setUploading] = useState(false);
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setAvatarFile(file);
-      setAvatarPreview(URL.createObjectURL(file));
+      const reader = new FileReader();
+      reader.addEventListener("load", () => setCropImageSrc(reader.result?.toString() || null));
+      reader.readAsDataURL(file);
     }
+    if (e.target) e.target.value = "";
+  };
+
+  const handleCropSubmit = (croppedFile: File) => {
+    setAvatarFile(croppedFile);
+    setAvatarPreview(URL.createObjectURL(croppedFile));
+    setCropImageSrc(null);
   };
 
   const handleAddPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -303,11 +313,10 @@ export default function EditProfilePage() {
                 <button
                   key={g.value}
                   onClick={() => setForm({ ...form, gender: g.value })}
-                  className={`p-3 rounded-xl border text-sm font-medium transition-all ${
-                    form.gender === g.value
+                  className={`p-3 rounded-xl border text-sm font-medium transition-all ${form.gender === g.value
                       ? "border-primary bg-primary/10 text-primary"
                       : "border-border bg-secondary text-foreground hover:border-primary/50"
-                  }`}
+                    }`}
                 >
                   <span className="mr-1">{g.icon}</span> {g.label}
                 </button>
@@ -324,11 +333,10 @@ export default function EditProfilePage() {
               <button
                 key={p.value}
                 onClick={() => setForm({ ...form, preference: p.value })}
-                className={`p-3 rounded-xl border text-sm font-medium transition-all ${
-                  form.preference === p.value
+                className={`p-3 rounded-xl border text-sm font-medium transition-all ${form.preference === p.value
                     ? "border-primary bg-primary/10 text-primary"
                     : "border-border bg-secondary text-foreground hover:border-primary/50"
-                }`}
+                  }`}
               >
                 <span className="mr-1">{p.icon}</span> {p.label}
               </button>
@@ -344,11 +352,10 @@ export default function EditProfilePage() {
               <button
                 key={interest}
                 onClick={() => toggleInterest(interest)}
-                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
-                  form.interests.includes(interest)
+                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${form.interests.includes(interest)
                     ? "gradient-primary text-primary-foreground"
                     : "bg-secondary text-muted-foreground hover:text-foreground border border-border"
-                }`}
+                  }`}
               >
                 {interest}
               </button>
@@ -358,6 +365,15 @@ export default function EditProfilePage() {
       </div>
 
       <BottomNav />
+
+      {cropImageSrc && (
+        <ImageCropDialog
+          imageSrc={cropImageSrc}
+          onClose={() => setCropImageSrc(null)}
+          onCropSubmit={handleCropSubmit}
+          initialAspectRatio={1}
+        />
+      )}
     </div>
   );
 }

@@ -7,8 +7,10 @@ import BottomNav from "@/components/BottomNav";
 import PageTransition from "@/components/PageTransition";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Sparkles, Users, SlidersHorizontal, X, CheckCircle, Coins } from "lucide-react";
-import type { Profile } from "@/hooks/useProfile";
+import { toast } from "sonner";
+import { motion, AnimatePresence } from "framer-motion";
+import { Search, Sparkles, Users, SlidersHorizontal, X, CheckCircle, Coins, ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 type GenderFilter = "male" | "female" | "everyone";
 
@@ -30,6 +32,7 @@ const COST_PER_SWIPE = 1;
 export default function SearchPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [genderFilter, setGenderFilter] = useState<GenderFilter>("everyone");
   const [showFilters, setShowFilters] = useState(false);
@@ -39,14 +42,53 @@ export default function SearchPage() {
   const [swipeCount, setSwipeCount] = useState(0);
   const [searchSeed, setSearchSeed] = useState(0);
 
+  // Initialize swipe count from localStorage
+  useEffect(() => {
+    if (!user) return;
+    const key = `swipes_${user.id}`;
+    const stored = localStorage.getItem(key);
+
+    // Calculate logical day (resets at 5:00 AM)
+    const now = new Date();
+    const logicalDate = new Date(now.getTime() - 5 * 60 * 60 * 1000);
+    const todayStr = logicalDate.toISOString().split("T")[0];
+
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (parsed.date === todayStr) {
+          setSwipeCount(parsed.count);
+        } else {
+          // Reset for new logical day
+          setSwipeCount(0);
+          localStorage.setItem(key, JSON.stringify({ date: todayStr, count: 0 }));
+        }
+      } catch {
+        setSwipeCount(0);
+      }
+    } else {
+      localStorage.setItem(key, JSON.stringify({ date: todayStr, count: 0 }));
+    }
+  }, [user]);
+
+  // Sync swipeCount to localStorage whenever it changes
+  useEffect(() => {
+    if (!user || swipeCount === 0) return; // Don't overwrite on initial mount sequence unnecessarily
+    const key = `swipes_${user.id}`;
+    const now = new Date();
+    const logicalDate = new Date(now.getTime() - 5 * 60 * 60 * 1000);
+    const todayStr = logicalDate.toISOString().split("T")[0];
+    localStorage.setItem(key, JSON.stringify({ date: todayStr, count: swipeCount }));
+  }, [swipeCount, user]);
+
   const freeLimit = genderFilter === "everyone" ? FREE_SWIPES_EVERYONE : FREE_SWIPES_GENDER;
   const remainingFree = Math.max(0, freeLimit - swipeCount);
   const isPaid = swipeCount >= freeLimit && genderFilter !== "everyone";
 
-  // Reset swipe count when filter changes
-  useEffect(() => {
-    setSwipeCount(0);
-  }, [genderFilter]);
+  // We intentionally do not reset the swipe count when filter changes anymore
+  // because the free daily limit should be global across filters.
+  // Wait, the prompt says "reset swipe count only at 5:00 AM every day".
+  // So we remove the useEffect that resets on genderFilter change.
 
   const { data: wallet } = useQuery({
     queryKey: ["wallet", user?.id],
@@ -200,9 +242,14 @@ export default function SearchPage() {
     <PageTransition className="min-h-screen pb-20">
       {/* Header */}
       <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border px-4 py-3">
-        <div className="flex items-center gap-2 mb-3">
-          <Search className="w-5 h-5 text-primary" />
-          <h1 className="text-xl font-heading font-bold text-gradient flex-1">Search</h1>
+        <div className="flex items-center gap-3 mb-3">
+          <button onClick={() => navigate(-1)} className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center transition-all active:scale-90 flex-shrink-0">
+            <ArrowLeft className="w-4 h-4 text-foreground" />
+          </button>
+          <div className="flex items-center gap-2 flex-1">
+            <Search className="w-5 h-5 text-primary hidden sm:block" />
+            <h1 className="text-xl font-heading font-bold text-gradient">Search</h1>
+          </div>
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={`relative w-9 h-9 rounded-full flex items-center justify-center transition-all ${showFilters ? "gradient-primary text-primary-foreground shadow-glow" : "bg-secondary text-muted-foreground"
@@ -224,8 +271,8 @@ export default function SearchPage() {
               key={opt.value}
               onClick={() => handleFilterChange(opt.value)}
               className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-medium transition-all ${genderFilter === opt.value
-                  ? "gradient-primary text-primary-foreground shadow-glow"
-                  : "bg-secondary text-muted-foreground hover:text-foreground"
+                ? "gradient-primary text-primary-foreground shadow-glow"
+                : "bg-secondary text-muted-foreground hover:text-foreground"
                 }`}
             >
               <span>{opt.emoji}</span>
