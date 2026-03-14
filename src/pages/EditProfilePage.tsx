@@ -16,6 +16,7 @@ import {
 import { format, differenceInYears } from "date-fns";
 import { cn } from "@/lib/utils";
 
+
 const INTERESTS = [
   "Music", "Travel", "Gaming", "Fitness", "Photography",
   "Cooking", "Reading", "Movies", "Art", "Tech",
