@@ -4,8 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, X, ChevronLeft, ChevronRight, Eye, Users, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { formatDistanceToNow } from "date-fns";
 import type { Profile } from "@/hooks/useProfile";
 
 interface Story {
@@ -30,6 +31,9 @@ export default function StoriesBar() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [viewingGroup, setViewingGroup] = useState<StoryGroup | null>(null);
   const [storyIndex, setStoryIndex] = useState(0);
+  const [showViewersForStory, setShowViewersForStory] = useState<Story | null>(null);
+  const [viewers, setViewers] = useState<Profile[]>([]);
+  const [loadingViewers, setLoadingViewers] = useState(false);
 
   const [watchedStories, setWatchedStories] = useState<string[]>(() => {
     try {
@@ -82,6 +86,61 @@ export default function StoriesBar() {
     refetchInterval: 60000,
   });
 
+  const { data: myStoryViews = {} } = useQuery({
+    queryKey: ["my-story-views", user?.id],
+    queryFn: async () => {
+      if (!user) return {};
+      const { data: myStories } = await supabase.from("stories" as any).select("id").eq("user_id", user.id);
+      if (!myStories || myStories.length === 0) return {};
+
+      const storyIds = myStories.map((s) => s.id);
+      const { data: views } = await supabase.from("story_views" as any).select("story_id").in("story_id", storyIds);
+
+      const counts: Record<string, number> = {};
+      views?.forEach((v: any) => {
+        counts[v.story_id] = (counts[v.story_id] || 0) + 1;
+      });
+      return counts;
+    },
+    enabled: !!user,
+    refetchInterval: 10000,
+  });
+
+  const recordViewMutation = useMutation({
+    mutationFn: async (storyId: string) => {
+      if (!user) return;
+      const { error } = await supabase.from("story_views" as any).upsert({
+        story_id: storyId,
+        viewer_id: user.id
+      }, { onConflict: 'story_id,viewer_id' });
+      if (error && error.code !== '23505') console.error("Error recording view:", error);
+    }
+  });
+
+  const fetchViewers = async (story: Story) => {
+    setLoadingViewers(true);
+    setShowViewersForStory(story);
+    try {
+      const { data: viewRecords } = await supabase
+        .from("story_views" as any)
+        .select("viewer_id")
+        .eq("story_id", story.id);
+      
+      if (!viewRecords || viewRecords.length === 0) {
+        setViewers([]);
+        return;
+      }
+
+      const viewerIds = viewRecords.map(v => v.viewer_id);
+      const { data: profiles } = await supabase.from("profiles").select("*").in("user_id", viewerIds);
+      setViewers((profiles || []) as Profile[]);
+    } catch (error) {
+      console.error("Error fetching viewers:", error);
+    } finally {
+      setLoadingViewers(false);
+    }
+  };
+
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
       if (!user) throw new Error("Not logged in");
@@ -117,12 +176,21 @@ export default function StoriesBar() {
     markAsWatched(group.user_id);
     setViewingGroup(group);
     setStoryIndex(0);
+    
+    // Record view if not own story
+    if (user && group.user_id !== user.id) {
+      recordViewMutation.mutate(group.stories[0].id);
+    }
   };
 
   const nextStory = () => {
     if (!viewingGroup) return;
-    if (storyIndex < viewingGroup.stories.length - 1) {
-      setStoryIndex((i) => i + 1);
+    const nextIdx = storyIndex + 1;
+    if (nextIdx < viewingGroup.stories.length) {
+      setStoryIndex(nextIdx);
+      if (user && viewingGroup.user_id !== user.id) {
+        recordViewMutation.mutate(viewingGroup.stories[nextIdx].id);
+      }
     } else {
       setViewingGroup(null);
     }
@@ -156,7 +224,15 @@ export default function StoriesBar() {
               </div>
             )}
           </div>
-          <span className="text-[10px] text-muted-foreground">Your Story</span>
+          <div className="flex flex-col items-center">
+            <span className="text-[10px] text-muted-foreground">Your Story</span>
+            {myStories && (
+              <div className="flex items-center gap-0.5 text-[9px] text-primary font-bold">
+                <Eye className="w-2.5 h-2.5" />
+                {Object.values(myStoryViews).reduce((a: number, b: number) => a + b, 0)}
+              </div>
+            )}
+          </div>
         </button>
 
         {/* Other users' stories */}
@@ -243,9 +319,24 @@ export default function StoriesBar() {
               className="w-full h-full object-contain"
             />
 
+            {/* Owner view count */}
+            {user?.id === viewingGroup.user_id && (
+              <div className="absolute bottom-10 left-0 right-0 flex justify-center z-20">
+                <button 
+                  onClick={() => fetchViewers(viewingGroup.stories[storyIndex])}
+                  className="bg-black/40 backdrop-blur-md px-4 py-2 rounded-full flex items-center gap-2 border border-white/10 active:scale-95 transition-transform"
+                >
+                  <Eye className="w-4 h-4 text-white" />
+                  <span className="text-white text-xs font-semibold">
+                    {myStoryViews[viewingGroup.stories[storyIndex].id] || 0} Views
+                  </span>
+                </button>
+              </div>
+            )}
+
             {/* Caption */}
             {viewingGroup.stories[storyIndex].caption && (
-              <div className="absolute bottom-10 left-4 right-4 text-center">
+              <div className={`absolute left-4 right-4 text-center z-20 ${user?.id === viewingGroup.user_id ? 'bottom-24' : 'bottom-10'}`}>
                 <p className="text-white text-sm bg-black/40 backdrop-blur-sm px-4 py-2 rounded-xl inline-block">
                   {viewingGroup.stories[storyIndex].caption}
                 </p>
@@ -258,6 +349,84 @@ export default function StoriesBar() {
               <div className="flex-1" onClick={nextStory} />
             </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Viewers List Modal */}
+      <AnimatePresence>
+        {showViewersForStory && (
+          <div className="fixed inset-0 z-[110] flex items-end justify-center pointer-events-none">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/60 pointer-events-auto"
+              onClick={() => setShowViewersForStory(null)}
+            />
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="relative w-full max-w-md bg-card rounded-t-3xl p-6 pointer-events-auto shadow-2xl overflow-hidden"
+              style={{ maxHeight: "70vh" }}
+            >
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Users className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-heading font-bold">Story Viewers</h3>
+                    <p className="text-xs text-muted-foreground">{viewers.length} people watched</p>
+                  </div>
+                </div>
+                <button onClick={() => setShowViewersForStory(null)} className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="overflow-y-auto pr-1" style={{ maxHeight: "calc(70vh - 120px)" }}>
+                {loadingViewers ? (
+                  <div className="flex flex-col items-center py-12">
+                    <Loader2 className="w-8 h-8 text-primary animate-spin mb-2" />
+                    <p className="text-sm text-muted-foreground">Loading viewers...</p>
+                  </div>
+                ) : viewers.length === 0 ? (
+                  <div className="text-center py-12">
+                    <p className="text-muted-foreground italic">No viewers yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {viewers.map((viewer) => (
+                      <div 
+                        key={viewer.user_id} 
+                        className="flex items-center justify-between group cursor-pointer"
+                        onClick={() => navigate(`/profile/${viewer.user_id}`)}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-full overflow-hidden bg-secondary border border-border">
+                            {viewer.avatar_url ? (
+                              <img src={viewer.avatar_url} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-lg">
+                                {viewer.gender === "female" ? "👩" : "👨"}
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-semibold text-sm">{viewer.name || viewer.username}</p>
+                            <p className="text-[10px] text-muted-foreground">Recently viewed</p>
+                          </div>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </>
