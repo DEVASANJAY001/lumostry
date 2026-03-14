@@ -127,7 +127,12 @@
     overscroll-behavior: none;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: var(--font-heading);
     letter-spacing: -0.025em;
   }
@@ -135,19 +140,17 @@
   /* Smooth scroll */
   html {
     scroll-behavior: smooth;
-    overflow-x: hidden;
-  }
-  body {
-    overflow-x: hidden;
   }
 
   /* Custom scrollbar */
   ::-webkit-scrollbar {
     width: 4px;
   }
+
   ::-webkit-scrollbar-track {
     background: transparent;
   }
+
   ::-webkit-scrollbar-thumb {
     background: hsl(var(--muted));
     border-radius: 999px;
@@ -157,6 +160,7 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -172,30 +176,38 @@
   .gradient-primary {
     background: var(--gradient-primary);
   }
+
   .gradient-warm {
     background: var(--gradient-warm);
   }
+
   .gradient-card {
     background: var(--gradient-card);
   }
+
   .gradient-glass {
     background: var(--gradient-glass);
   }
+
   .shadow-glow {
     box-shadow: var(--shadow-glow);
   }
+
   .shadow-card {
     box-shadow: var(--shadow-card);
   }
+
   .shadow-elevated {
     box-shadow: var(--shadow-elevated);
   }
+
   .text-gradient {
     background: var(--gradient-primary);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
+
   .glass-card {
     background: var(--gradient-glass);
     backdrop-filter: blur(20px);
@@ -207,22 +219,47 @@
   .tap-scale {
     @apply transition-transform duration-150 active:scale-[0.96];
   }
+
   .tap-scale-sm {
     @apply transition-transform duration-100 active:scale-[0.92];
   }
 
   /* Staggered fade-in for lists */
-  .stagger-fade > * {
+  .stagger-fade>* {
     animation: stagger-fade-in 0.4s ease-out both;
   }
-  .stagger-fade > *:nth-child(1) { animation-delay: 0ms; }
-  .stagger-fade > *:nth-child(2) { animation-delay: 40ms; }
-  .stagger-fade > *:nth-child(3) { animation-delay: 80ms; }
-  .stagger-fade > *:nth-child(4) { animation-delay: 120ms; }
-  .stagger-fade > *:nth-child(5) { animation-delay: 160ms; }
-  .stagger-fade > *:nth-child(6) { animation-delay: 200ms; }
-  .stagger-fade > *:nth-child(7) { animation-delay: 240ms; }
-  .stagger-fade > *:nth-child(8) { animation-delay: 280ms; }
+
+  .stagger-fade>*:nth-child(1) {
+    animation-delay: 0ms;
+  }
+
+  .stagger-fade>*:nth-child(2) {
+    animation-delay: 40ms;
+  }
+
+  .stagger-fade>*:nth-child(3) {
+    animation-delay: 80ms;
+  }
+
+  .stagger-fade>*:nth-child(4) {
+    animation-delay: 120ms;
+  }
+
+  .stagger-fade>*:nth-child(5) {
+    animation-delay: 160ms;
+  }
+
+  .stagger-fade>*:nth-child(6) {
+    animation-delay: 200ms;
+  }
+
+  .stagger-fade>*:nth-child(7) {
+    animation-delay: 240ms;
+  }
+
+  .stagger-fade>*:nth-child(8) {
+    animation-delay: 280ms;
+  }
 }
 
 @keyframes stagger-fade-in {
@@ -230,6 +267,7 @@
     opacity: 0;
     transform: translateY(8px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

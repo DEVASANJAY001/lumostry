@@ -100,7 +100,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <div className="max-w-lg mx-auto min-h-screen relative">
+            <div className="max-w-lg mx-auto min-h-screen relative overflow-x-hidden">
               <AppRoutes />
             </div>
           </BrowserRouter>
