@@ -11,7 +11,6 @@ import { ArrowRight, ArrowLeft, Sparkles, User, Heart, Star, Camera } from "luci
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { format, differenceInYears } from "date-fns";
-import { cn } from "@/lib/utils";
 
 const INTERESTS = [
   "Music", "Travel", "Gaming", "Fitness", "Photography",
