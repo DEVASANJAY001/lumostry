@@ -1,16 +1,17 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Flame, MessageCircle, Heart, User, Search, Bell, LayoutGrid } from "lucide-react";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Home, Search, PlaySquare, Heart, User, Compass } from "lucide-react";
 
 const NAV_ITEMS = [
-  { path: "/feed", icon: LayoutGrid, label: "Feed" },
-  { path: "/discover", icon: Flame, label: "Discover" },
-  { path: "/matches", icon: Heart, label: "Matches" },
-  { path: "/chats", icon: MessageCircle, label: "Chat" },
-  { path: "/profile", icon: User, label: "Me" },
+  { path: "/feed", icon: Home, label: "Home" },
+  { path: "/discover", icon: Search, label: "Search" },
+  { path: "/explore", icon: PlaySquare, label: "Reels" }, // PlaySquare for Reels-like look
+  { path: "/matches", icon: Heart, label: "Activity" },
+  { path: "/profile", icon: User, label: "Profile" },
 ];
 
 export default function BottomNav() {
@@ -73,18 +74,27 @@ export default function BottomNav() {
                 <div className="relative">
                   <motion.div
                     animate={{
-                      scale: active ? 1 : 1,
+                      scale: active ? 1.1 : 1,
                       y: active ? -1 : 0,
                     }}
                     transition={{ type: "spring", stiffness: 400, damping: 20 }}
                   >
-                    <item.icon
-                      className={`w-[21px] h-[21px] transition-colors duration-200 ${
-                        active ? "text-primary" : "text-muted-foreground"
-                      }`}
-                      fill={active && (item.path === "/matches" || item.path === "/discover") ? "currentColor" : "none"}
-                      strokeWidth={active ? 2.5 : 1.8}
-                    />
+                    {item.path === "/profile" && user?.id ? (
+                      <div className={`w-6 h-6 rounded-full overflow-hidden border ${active ? "border-foreground" : "border-transparent"}`}>
+                        <Avatar className="w-full h-full">
+                          <AvatarImage src={(user as any)?.user_metadata?.avatar_url} />
+                          <AvatarFallback><User className="w-4 h-4" /></AvatarFallback>
+                        </Avatar>
+                      </div>
+                    ) : (
+                      <item.icon
+                        className={`w-[24px] h-[24px] transition-colors duration-200 ${
+                          active ? "text-foreground" : "text-foreground/70"
+                        }`}
+                        fill={active && (item.path === "/matches" || item.path === "/feed") ? "currentColor" : "none"}
+                        strokeWidth={active ? 2.2 : 1.8}
+                      />
+                    )}
                   </motion.div>
                   {badge > 0 && (
                     <motion.span
@@ -102,13 +112,6 @@ export default function BottomNav() {
                 }`}>
                   {item.label}
                 </span>
-                {active && (
-                  <motion.div
-                    layoutId="nav-active-dot"
-                    className="absolute -bottom-0.5 w-1 h-1 rounded-full bg-primary"
-                    transition={{ type: "spring", stiffness: 350, damping: 28 }}
-                  />
-                )}
               </motion.button>
             );
           })}

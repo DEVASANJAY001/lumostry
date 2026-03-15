@@ -7,9 +7,10 @@ import BottomNav from "@/components/BottomNav";
 import PostCard from "@/components/PostCard";
 import CreatePostModal from "@/components/CreatePostModal";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Sparkles, Loader2, Image as ImageIcon, Search } from "lucide-react";
+import { PlusSquare, Settings, Heart, Send, Loader2, Image as ImageIcon, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import StoriesBar from "@/components/StoriesBar";
 
 export default function FeedPage() {
   const { user } = useAuth();
@@ -50,38 +51,50 @@ export default function FeedPage() {
   });
 
   return (
-    <PageTransition className="min-h-screen pb-24 bg-secondary/5">
-      {/* Header */}
-      <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border px-4 py-3 flex items-center justify-between">
+    <PageTransition className="min-h-screen pb-20">
+      {/* Instagram-style Header */}
+      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border px-4 py-2 flex items-center justify-between">
+        <h1 className="text-2xl brand-logo flex-shrink-0">Instagram</h1>
+        
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-6 h-6 text-primary" />
-            <h1 className="text-xl font-heading font-bold text-gradient">Feed</h1>
-          </div>
           <button 
-            onClick={() => navigate("/search")}
-            className="p-2 rounded-full bg-secondary/50 text-muted-foreground hover:text-primary transition-all"
+            onClick={() => setIsCreateModalOpen(true)}
+            className="p-1 hover:bg-secondary rounded-lg transition-colors"
           >
-            <Search className="w-4 h-4" />
+            <PlusSquare className="w-6 h-6" />
           </button>
+          <button 
+            onClick={() => navigate("/settings")}
+            className="p-1 hover:bg-secondary rounded-lg transition-colors"
+          >
+            <Settings className="w-6 h-6" />
+          </button>
+          <div className="relative">
+            <button 
+              onClick={() => navigate("/chats")}
+              className="p-1 hover:bg-secondary rounded-lg transition-colors"
+            >
+              <Send className="w-6 h-6 rotate-[ -15deg]" />
+            </button>
+            <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-background flex items-center justify-center">
+              <span className="text-[10px] text-white font-bold">14</span>
+            </div>
+          </div>
         </div>
-        <Button 
-          size="sm" 
-          onClick={() => setIsCreateModalOpen(true)}
-          className="rounded-full gradient-primary text-primary-foreground shadow-glow h-9 px-4"
-        >
-          <Plus className="w-4 h-4 mr-1.5" /> Post
-        </Button>
       </div>
 
-      <div className="max-w-md mx-auto p-4">
+      {/* Stories Bar */}
+      <StoriesBar stories={[]} />
+
+      {/* Posts Feed */}
+      <div className="max-w-md mx-auto">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <Loader2 className="w-8 h-8 text-primary animate-spin mb-4" />
-            <p className="text-muted-foreground animate-pulse">Loading your feed...</p>
+            <p className="text-muted-foreground animate-pulse text-sm">Finishing up feed...</p>
           </div>
         ) : posts.length > 0 ? (
-          <div className="space-y-2">
+          <div className="divide-y divide-border/30">
             {posts.map((post) => (
               <PostCard key={post.id} post={post} />
             ))}
@@ -90,21 +103,20 @@ export default function FeedPage() {
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="flex flex-col items-center justify-center py-20 text-center"
+            className="flex flex-col items-center justify-center py-20 text-center px-6"
           >
-            <div className="w-20 h-20 rounded-full bg-secondary flex items-center justify-center mb-6">
-              <ImageIcon className="w-10 h-10 text-muted-foreground opacity-20" />
+            <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center mb-6">
+              <ImageIcon className="w-8 h-8 text-muted-foreground opacity-30" />
             </div>
-            <h3 className="text-lg font-heading font-semibold mb-2">No posts yet</h3>
-            <p className="text-muted-foreground text-sm max-w-[240px] mb-8">
-              Be the first to share a moment with the community!
+            <h3 className="text-lg font-heading font-semibold mb-2">Welcome to your feed</h3>
+            <p className="text-muted-foreground text-xs max-w-[200px] mb-8 leading-relaxed">
+              When you follow people, their photos and videos will show up here.
             </p>
             <Button 
               onClick={() => setIsCreateModalOpen(true)}
-              variant="outline"
-              className="rounded-full border-primary/20 text-primary hover:bg-primary/5"
+              className="rounded-xl gradient-primary text-primary-foreground shadow-glow h-10 px-6 font-semibold"
             >
-              Share your first post
+              Start Sharing
             </Button>
           </motion.div>
         )}

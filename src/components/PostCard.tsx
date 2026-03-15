@@ -148,34 +148,39 @@ export default function PostCard({ post, onLike, onComment, onSave, onReport }: 
 
   return (
     <motion.div 
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-card border border-border rounded-3xl overflow-hidden mb-6 shadow-sm"
+      className="bg-background border-b border-border/50 overflow-hidden mb-2"
     >
       {/* Post Header */}
-      <div className="flex items-center justify-between p-4">
-        <div className="flex items-center gap-3">
-          <Avatar className="w-9 h-9 border border-primary/10">
-            <AvatarImage src={post.profiles?.avatar_url} />
-            <AvatarFallback>{post.profiles?.name?.charAt(0)}</AvatarFallback>
-          </Avatar>
-          <div>
-            <h4 className="text-sm font-semibold leading-tight">{post.profiles?.name}</h4>
-            <p className="text-[10px] text-muted-foreground">
-              {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
-            </p>
+      <div className="flex items-center justify-between px-3 py-2.5">
+        <div className="flex items-center gap-2.5">
+          <div className="p-0.5 rounded-full gradient-stories">
+            <div className="p-0.5 bg-background rounded-full">
+              <Avatar className="w-8 h-8">
+                <AvatarImage src={post.profiles?.avatar_url} />
+                <AvatarFallback>{post.profiles?.name?.charAt(0)}</AvatarFallback>
+              </Avatar>
+            </div>
+          </div>
+          <div className="flex flex-col">
+            <h4 className="text-[13px] font-bold leading-none flex items-center gap-1">
+              {post.profiles?.username || post.profiles?.name}
+              {post.profiles?.is_verified && <div className="w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center"><Send className="w-2 h-2 text-white fill-current" /></div>}
+            </h4>
+            <span className="text-[11px] text-foreground/80 mt-0.5">Tamil Nadu</span>
           </div>
         </div>
         <button 
           onClick={handleReport}
-          className="p-2 rounded-full hover:bg-secondary transition-colors"
+          className="p-1.5"
         >
-          <MoreHorizontal className="w-5 h-5 text-muted-foreground" />
+          <MoreHorizontal className="w-5 h-5" />
         </button>
       </div>
 
       {/* Media Content */}
-      <div className="relative aspect-square bg-secondary/30 overflow-hidden">
+      <div className="relative aspect-square bg-secondary/20 overflow-hidden">
         {post.media_type === "video" ? (
           <video 
             src={post.media_url} 
@@ -196,49 +201,49 @@ export default function PostCard({ post, onLike, onComment, onSave, onReport }: 
       </div>
 
       {/* Actions */}
-      <div className="p-4">
-        <div className="flex items-center justify-between mb-3">
+      <div className="px-3 py-3">
+        <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-4">
             <button 
               onClick={handleLike}
               className={`transition-all active:scale-90 ${isLiked ? "text-red-500" : "text-foreground hover:text-red-500"}`}
             >
-              <Heart className={`w-6 h-6 ${isLiked ? "fill-current" : ""}`} />
+              <Heart className={`w-7 h-7 ${isLiked ? "fill-current" : ""}`} />
             </button>
             <button 
               onClick={() => setShowComments(!showComments)}
-              className={`transition-all active:scale-90 ${showComments ? "text-primary" : "text-foreground hover:text-primary"}`}
+              className="text-foreground active:scale-90 transition-all"
             >
-              <MessageCircle className="w-6 h-6" />
+              <MessageCircle className="w-7 h-7" />
             </button>
-            <button className="text-foreground hover:text-primary transition-colors">
-              <Share2 className="w-6 h-6" />
+            <button className="text-foreground active:scale-90 transition-all">
+              <Send className="w-7 h-7 rotate-[-15deg]" />
             </button>
           </div>
           <button 
             onClick={handleSave}
-            className={`transition-all active:scale-90 ${isSaved ? "text-primary" : "text-foreground hover:text-primary"}`}
+            className={`transition-all active:scale-90 ${isSaved ? "text-foreground" : "text-foreground hover:text-primary"}`}
           >
-            <Bookmark className={`w-6 h-6 ${isSaved ? "fill-current" : ""}`} />
+            <Bookmark className={`w-7 h-7 ${isSaved ? "fill-current" : ""}`} />
           </button>
         </div>
 
         {/* Likes Count */}
-        <p className="text-sm font-bold mb-1">
+        <p className="text-[13px] font-bold mb-1.5">
           {likeCount.toLocaleString()} {likeCount === 1 ? "like" : "likes"}
         </p>
 
         {/* Caption */}
-        <div className="text-sm leading-relaxed mb-1">
-          <span className="font-bold mr-2">{post.profiles?.name}</span>
-          {post.caption}
+        <div className="text-[13px] leading-[18px] mb-1.5 flex flex-wrap gap-x-1.5">
+          <span className="font-bold">{post.profiles?.username || post.profiles?.name}</span>
+          <span className="text-foreground/90">{post.caption}</span>
         </div>
 
         {/* Hashtags */}
         {post.hashtags && post.hashtags.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mb-2">
+          <div className="flex flex-wrap gap-1.5 mb-1.5">
             {post.hashtags.map((tag: string) => (
-              <span key={tag} className="text-sm text-primary font-medium hover:underline cursor-pointer">
+              <span key={tag} className="text-[13px] text-blue-800 dark:text-blue-400 font-medium hover:underline cursor-pointer">
                 #{tag}
               </span>
             ))}
@@ -246,14 +251,18 @@ export default function PostCard({ post, onLike, onComment, onSave, onReport }: 
         )}
 
         {/* Comment Section */}
-        {!showComments && commentCount > 0 && (
+        {commentCount > 0 && (
           <button 
             onClick={() => setShowComments(true)}
-            className="text-xs text-muted-foreground mt-1 hover:text-foreground transition-colors"
+            className="text-[13px] text-muted-foreground mt-0.5 hover:text-foreground transition-colors"
           >
             View all {commentCount} comments
           </button>
         )}
+
+        <div className="text-[10px] text-muted-foreground mt-1.5 uppercase tracking-tight">
+          {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
+        </div>
 
         <AnimatePresence>
           {showComments && (
@@ -263,7 +272,6 @@ export default function PostCard({ post, onLike, onComment, onSave, onReport }: 
               exit={{ height: 0, opacity: 0 }}
               className="mt-3 pt-3 border-t border-border overflow-hidden"
             >
-              {/* Comment List */}
               <div className="space-y-3 mb-4 max-h-40 overflow-y-auto pr-2 scrollbar-hide">
                 {loadingComments ? (
                   <div className="text-center py-2"><Loader2 className="w-4 h-4 animate-spin mx-auto text-muted-foreground" /></div>
@@ -288,7 +296,6 @@ export default function PostCard({ post, onLike, onComment, onSave, onReport }: 
                 ))}
               </div>
 
-              {/* Reply Indicator */}
               {replyingTo && (
                 <div className="flex items-center justify-between px-3 py-1.5 bg-primary/5 rounded-t-xl text-[10px] border-x border-t border-primary/20">
                   <span className="text-muted-foreground">Replying to <span className="font-bold text-primary">{replyingTo.profiles?.name}</span></span>
@@ -298,11 +305,10 @@ export default function PostCard({ post, onLike, onComment, onSave, onReport }: 
                 </div>
               )}
 
-              {/* Comment Input */}
               <div className="flex items-center gap-2 mb-2">
                 <Input 
                   placeholder={replyingTo ? "Write a reply..." : "Add a comment..."} 
-                  className={`bg-secondary/50 border-0 text-xs h-9 ${replyingTo ? "rounded-b-2xl rounded-t-none" : "rounded-full"}`}
+                  className={`bg-secondary/50 border-0 text-[13px] h-9 ${replyingTo ? "rounded-b-2xl rounded-t-none" : "rounded-full"}`}
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleAddComment()}
