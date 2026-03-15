@@ -9,10 +9,10 @@ import ImageCropDialog from "@/components/ImageCropDialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { Settings, Edit, Camera, Users, ChevronRight, Wallet, Image as ImageIcon, CheckCircle, Eye, Loader2, ArrowLeft } from "lucide-react";
+import { Settings, Edit, Camera, Users, Wallet, Image as ImageIcon, CheckCircle, Eye, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useState, useRef, useEffect } from "react";
-import { Lock, Plus, Menu, Grid, Film, UserSquare2, ChevronDown } from "lucide-react";
+import { useState, useRef } from "react";
+import { Lock, Plus, Menu, Grid, Film, UserSquare2, ChevronDown, Share2, Bookmark } from "lucide-react";
 import CreateHighlightModal from "@/components/CreateHighlightModal";
 import HighlightViewer from "@/components/HighlightViewer";
 import ShareProfileModal from "@/components/ShareProfileModal";
@@ -21,12 +21,12 @@ export default function ProfilePage() {
   const { data: profile, refetch: refetchProfile } = useProfile();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [photoIndex, setPhotoIndex] = useState(0);
   const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [isHighlightModalOpen, setIsHighlightModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [selectedHighlight, setSelectedHighlight] = useState<any | null>(null);
+  const [activeTab, setActiveTab] = useState<"posts" | "reels" | "tagged">("posts");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: followerCount = 0 } = useQuery({
@@ -131,23 +131,6 @@ export default function ProfilePage() {
   });
   const highlights = (highlightsResponse as any[]) || [];
 
-  const allPhotos = [
-    ...(profile?.avatar_url ? [profile.avatar_url] : []),
-    ...(profile?.photos || []),
-  ];
-
-  const quickActions = [
-    ...(requestCount > 0 ? [{
-      icon: Users, label: `${requestCount} follow request${requestCount > 1 ? "s" : ""}`, variant: "highlight" as const,
-      onClick: () => navigate("/friend-requests"),
-    }] : []),
-    { icon: Edit, label: "Edit Profile", onClick: () => navigate("/edit-profile") },
-    { icon: ImageIcon, label: "My Gallery", onClick: () => navigate("/my-gallery") },
-    { icon: Eye, label: "Profile Visitors", onClick: () => navigate("/profile-visitors") },
-    { icon: Wallet, label: `Wallet · ${walletBalance} pts`, onClick: () => navigate("/wallet") },
-    ...(!profile?.is_verified ? [{ icon: CheckCircle, label: "Verify Profile", onClick: () => navigate("/verify") }] : []),
-  ];
-
   const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -181,219 +164,264 @@ export default function ProfilePage() {
     }
   };
 
-  const [activeTab, setActiveTab] = useState<"posts" | "reels" | "tagged">("posts");
+  const filteredPosts = userPosts.filter(post => {
+    if (activeTab === "reels") return post.media_type === "reel" || post.media_type === "video";
+    if (activeTab === "posts") return post.media_type === "image" || !post.media_type || post.media_type === "reel" || post.media_type === "video";
+    return true;
+  });
 
   return (
     <PageTransition className="min-h-screen pb-20 bg-background text-foreground">
-      {/* Header */}
-      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm px-4 h-12 flex items-center justify-between border-b border-border/40">
-        <div className="flex items-center gap-1">
-          {profile?.is_private && <Lock className="w-3.5 h-3.5 text-foreground" />}
-          <h1 className="text-[17px] font-bold tracking-tight">{profile?.username || "username"}</h1>
-          <ChevronDown className="w-4 h-4 opacity-50 ml-0.5" />
-        </div>
-
-        <div className="flex items-center gap-5">
-          <button onClick={() => navigate("/create")} className="p-0.5 active:opacity-50 transition-opacity">
-            <Plus className="w-[26px] h-[26px]" />
-          </button>
-          <button onClick={() => navigate("/settings")} className="p-0.5 active:opacity-50 transition-opacity">
-            <Menu className="w-[26px] h-[26px]" />
-          </button>
+      {/* Minimal Header */}
+      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border/30">
+        <div className="flex items-center justify-between px-4 h-11">
+          <div className="flex items-center gap-1.5">
+            {profile?.is_private && <Lock className="w-3 h-3 text-muted-foreground" />}
+            <h1 className="text-[15px] font-bold tracking-tight font-heading">{profile?.username || "username"}</h1>
+            {profile?.is_verified && <VerifiedBadge size="xs" />}
+            <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+          </div>
+          <div className="flex items-center gap-3">
+            <button onClick={() => navigate("/create")} className="active:scale-90 transition-transform">
+              <Plus className="w-6 h-6" />
+            </button>
+            <button onClick={() => navigate("/settings")} className="active:scale-90 transition-transform">
+              <Menu className="w-6 h-6" />
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="px-4 py-6">
-        {/* Profile Info Row */}
-        <div className="flex items-center justify-between mb-6">
-          {/* Avatar with Note */}
-          <div className="relative">
+      {/* Profile Hero */}
+      <div className="px-4 pt-5 pb-2">
+        {/* Avatar + Stats Row */}
+        <div className="flex items-start gap-6 mb-4">
+          {/* Avatar */}
+          <div className="relative flex-shrink-0">
             <AnimatePresence>
               {userNote && (
                 <motion.div
-                  initial={{ scale: 0, opacity: 0, y: 10 }}
+                  initial={{ scale: 0, opacity: 0, y: 8 }}
                   animate={{ scale: 1, opacity: 1, y: 0 }}
-                  className="absolute -top-12 left-0 z-10"
+                  exit={{ scale: 0, opacity: 0 }}
+                  className="absolute -top-10 left-1/2 -translate-x-1/2 z-10"
                 >
-                  <div className="relative bg-card border border-border rounded-2xl px-3 py-2 shadow-xl max-w-[120px]">
-                    <p className="text-[11px] leading-tight text-center font-medium line-clamp-2">
+                  <div className="relative bg-card border border-border/60 rounded-xl px-2.5 py-1.5 shadow-lg max-w-[100px]">
+                    <p className="text-[10px] leading-tight text-center font-medium line-clamp-2 text-foreground/80">
                       {userNote.content}
                     </p>
-                    {/* Tail */}
-                    <div className="absolute -bottom-1 left-4 w-2 h-2 bg-card border-r border-b border-border rotate-45" />
+                    <div className="absolute -bottom-[5px] left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-card border-r border-b border-border/60 rotate-45" />
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            <div className="relative group">
-              <div className="w-24 h-24 rounded-full p-[3px] bg-gradient-to-tr from-yellow-400 to-fuchsia-600">
-                <div className="w-full h-full rounded-full border-2 border-background overflow-hidden relative">
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="relative group"
+            >
+              <div className="w-20 h-20 rounded-full p-[2.5px] bg-gradient-to-br from-primary via-accent to-primary">
+                <div className="w-full h-full rounded-full border-[2.5px] border-background overflow-hidden">
                   <img
                     src={profile?.avatar_url || "https://github.com/shadcn.png"}
                     alt=""
                     className="w-full h-full object-cover"
                   />
                   {uploadingAvatar && (
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                      <Loader2 className="w-5 h-5 animate-spin text-white" />
+                    <div className="absolute inset-0 rounded-full bg-background/50 flex items-center justify-center">
+                      <Loader2 className="w-5 h-5 animate-spin text-primary" />
                     </div>
                   )}
                 </div>
               </div>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="absolute bottom-0 right-0 bg-blue-500 text-white p-1.5 rounded-full border-2 border-background shadow-lg active:scale-90 transition-transform"
-              >
-                <Plus className="w-3.5 h-3.5" />
-              </button>
-            </div>
+              <div className="absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center border-2 border-background shadow-sm">
+                <Plus className="w-3 h-3 stroke-[3]" />
+              </div>
+            </button>
             <input type="file" ref={fileInputRef} onChange={handleAvatarSelect} accept="image/*" className="hidden" />
           </div>
 
           {/* Stats */}
-          <div className="flex-1 flex items-center justify-around pl-4">
-            <div className="flex flex-col items-center">
-              <span className="text-[17px] font-bold leading-tight">{postsCount}</span>
-              <span className="text-[13px] text-foreground/80">posts</span>
-            </div>
-            <div className="flex flex-col items-center cursor-pointer" onClick={() => navigate("/followers")}>
-              <span className="text-[17px] font-bold leading-tight">{followerCount}</span>
-              <span className="text-[13px] text-foreground/80">followers</span>
-            </div>
-            <div className="flex flex-col items-center cursor-pointer" onClick={() => navigate("/following")}>
-              <span className="text-[17px] font-bold leading-tight">{followingCount}</span>
-              <span className="text-[13px] text-foreground/80">following</span>
-            </div>
+          <div className="flex-1 flex items-center justify-around pt-2">
+            <button className="flex flex-col items-center gap-0.5 active:opacity-60 transition-opacity">
+              <span className="text-lg font-bold leading-none">{postsCount}</span>
+              <span className="text-[11px] text-muted-foreground">Posts</span>
+            </button>
+            <button onClick={() => navigate("/followers")} className="flex flex-col items-center gap-0.5 active:opacity-60 transition-opacity">
+              <span className="text-lg font-bold leading-none">{followerCount}</span>
+              <span className="text-[11px] text-muted-foreground">Followers</span>
+            </button>
+            <button onClick={() => navigate("/following")} className="flex flex-col items-center gap-0.5 active:opacity-60 transition-opacity">
+              <span className="text-lg font-bold leading-none">{followingCount}</span>
+              <span className="text-[11px] text-muted-foreground">Following</span>
+            </button>
           </div>
         </div>
 
-        {/* Bio */}
-        <div className="mb-4 space-y-0.5">
-          <div className="flex items-center gap-1.5">
-            <h2 className="text-[13px] font-bold">{profile?.name || "Lumos User"}</h2>
-            {profile?.is_verified && <VerifiedBadge size="xs" />}
-          </div>
-          <p className="text-[13px] leading-[18px] whitespace-pre-wrap text-foreground/90">{profile?.bio || "No bio yet."}</p>
-
+        {/* Name & Bio */}
+        <div className="mb-3.5 space-y-0.5">
+          <h2 className="text-[13px] font-bold leading-tight">{profile?.name || "Your Name"}</h2>
+          <p className="text-[13px] leading-[17px] text-foreground/80 whitespace-pre-wrap">{profile?.bio || "✨ Add a bio to tell people about yourself"}</p>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-1.5 mb-8">
+        <div className="flex gap-1.5 mb-5">
           <Button
             onClick={() => navigate("/edit-profile")}
-            className="flex-1 bg-secondary hover:bg-secondary/90 text-foreground font-semibold text-[13px] h-8 rounded-lg border-0 shadow-none"
+            variant="secondary"
+            className="flex-1 h-[34px] text-[13px] font-semibold rounded-lg"
           >
             Edit profile
           </Button>
           <Button
             variant="secondary"
-            className="flex-1 h-8 text-[13px] font-bold rounded-lg bg-secondary/50 border-0"
+            className="flex-1 h-[34px] text-[13px] font-semibold rounded-lg"
             onClick={() => setIsShareModalOpen(true)}
           >
-            Share Profile
+            Share profile
           </Button>
-          <Button
-            variant="secondary"
-            size="icon"
-            className="bg-secondary hover:bg-secondary/90 text-foreground w-8 h-8 rounded-lg border-0 shadow-none"
-          >
-            <Users className="w-4 h-4" />
-          </Button>
+          {requestCount > 0 && (
+            <Button
+              variant="secondary"
+              size="icon"
+              className="h-[34px] w-[34px] rounded-lg relative"
+              onClick={() => navigate("/friend-requests")}
+            >
+              <Users className="w-4 h-4" />
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center">
+                {requestCount}
+              </span>
+            </Button>
+          )}
+        </div>
+
+        {/* Quick Actions Row */}
+        <div className="flex gap-3 mb-5 overflow-x-auto scrollbar-hide -mx-4 px-4">
+          <button onClick={() => navigate("/wallet")} className="flex items-center gap-2 px-3.5 py-2 rounded-full bg-secondary/80 text-[12px] font-medium text-foreground/80 flex-shrink-0 active:scale-95 transition-transform border border-border/30">
+            <Wallet className="w-3.5 h-3.5 text-primary" />
+            {walletBalance} pts
+          </button>
+          <button onClick={() => navigate("/my-gallery")} className="flex items-center gap-2 px-3.5 py-2 rounded-full bg-secondary/80 text-[12px] font-medium text-foreground/80 flex-shrink-0 active:scale-95 transition-transform border border-border/30">
+            <ImageIcon className="w-3.5 h-3.5 text-accent" />
+            Gallery
+          </button>
+          <button onClick={() => navigate("/profile-visitors")} className="flex items-center gap-2 px-3.5 py-2 rounded-full bg-secondary/80 text-[12px] font-medium text-foreground/80 flex-shrink-0 active:scale-95 transition-transform border border-border/30">
+            <Eye className="w-3.5 h-3.5 text-muted-foreground" />
+            Visitors
+          </button>
+          {!profile?.is_verified && (
+            <button onClick={() => navigate("/verify")} className="flex items-center gap-2 px-3.5 py-2 rounded-full bg-primary/10 text-[12px] font-medium text-primary flex-shrink-0 active:scale-95 transition-transform border border-primary/20">
+              <CheckCircle className="w-3.5 h-3.5" />
+              Get Verified
+            </button>
+          )}
         </div>
 
         {/* Highlights */}
-        <div className="flex items-center gap-5 px-1 mb-8 overflow-x-auto scrollbar-hide">
-          <div
-            className="flex flex-col items-center gap-1.5 flex-shrink-0 group cursor-pointer"
+        <div className="flex items-center gap-4 mb-4 overflow-x-auto scrollbar-hide -mx-4 px-4">
+          <button
+            className="flex flex-col items-center gap-1 flex-shrink-0"
             onClick={() => setIsHighlightModalOpen(true)}
           >
-            <div className="w-[62px] h-[62px] rounded-full border border-border/60 flex items-center justify-center p-[3px]">
-              <div className="w-full h-full rounded-full bg-secondary/20 flex items-center justify-center">
-                <Plus className="w-7 h-7 opacity-60" />
-              </div>
+            <div className="w-16 h-16 rounded-full border border-border/50 flex items-center justify-center">
+              <Plus className="w-6 h-6 text-muted-foreground" />
             </div>
-            <span className="text-[11px] font-medium opacity-80">New</span>
-          </div>
+            <span className="text-[11px] text-muted-foreground">New</span>
+          </button>
 
-          {highlights.map((h) => (
-            <div
+          {highlights.map((h: any) => (
+            <button
               key={h.id}
-              className="flex flex-col items-center gap-1.5 flex-shrink-0 cursor-pointer"
+              className="flex flex-col items-center gap-1 flex-shrink-0"
               onClick={() => setSelectedHighlight(h)}
             >
-              <div className="w-[62px] h-[62px] rounded-full border border-border/60 p-[3px]">
-                <div className="w-full h-full rounded-full bg-secondary/40 overflow-hidden">
+              <div className="w-16 h-16 rounded-full p-[2px] bg-border/50">
+                <div className="w-full h-full rounded-full overflow-hidden bg-secondary">
                   {h.cover_url ? (
                     <img src={h.cover_url} alt="" className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-[10px] font-bold text-muted-foreground uppercase">
-                      {h.title.substring(0, 2)}
+                      {h.title?.substring(0, 2)}
                     </div>
                   )}
                 </div>
               </div>
-              <span className="text-[11px] font-medium truncate max-w-[66px]">{h.title}</span>
-            </div>
+              <span className="text-[11px] font-medium truncate max-w-[64px]">{h.title}</span>
+            </button>
           ))}
-        </div>
-
-        {/* Tabs */}
-        <div className="flex border-t border-border/40">
-          <button
-            onClick={() => setActiveTab("posts")}
-            className={`flex-1 flex justify-center py-3 border-t-2 transition-colors ${activeTab === "posts" ? "border-foreground" : "border-transparent opacity-40"}`}
-          >
-            <Grid className="w-6 h-6" />
-          </button>
-          <button
-            onClick={() => setActiveTab("reels")}
-            className={`flex-1 flex justify-center py-3 border-t-2 transition-colors ${activeTab === "reels" ? "border-foreground" : "border-transparent opacity-40"}`}
-          >
-            <Film className="w-6 h-6" />
-          </button>
-          <button
-            onClick={() => setActiveTab("tagged")}
-            className={`flex-1 flex justify-center py-3 border-t-2 transition-colors ${activeTab === "tagged" ? "border-foreground" : "border-transparent opacity-40"}`}
-          >
-            <UserSquare2 className="w-6 h-6" />
-          </button>
-        </div>
-
-        {/* Grid */}
-        <div className="grid grid-cols-3 gap-0.5 pt-0.5 max-w-lg mx-auto">
-          {userPosts.length > 0 ? (
-            userPosts.map((post) => (
-              <motion.div
-                key={post.id}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="aspect-square bg-secondary relative group cursor-pointer"
-                onClick={() => user?.id && navigate(`/user/${user.id}/posts?postId=${post.id}`)}
-              >
-                {post.media_type === "video" || post.media_type === "reel" ? (
-                  <>
-                    <video src={post.media_url} className="w-full h-full object-cover" />
-                    <Film className="absolute top-2 right-2 w-4 h-4 text-white drop-shadow-md" />
-                  </>
-                ) : (
-                  <img src={post.media_url} alt="" className="w-full h-full object-cover" />
-                )}
-              </motion.div>
-            ))
-          ) : (
-            <div className="col-span-3 py-20 flex flex-col items-center justify-center text-center px-8">
-              <div className="w-20 h-20 rounded-full border-2 border-foreground flex items-center justify-center mb-6">
-                <Camera className="w-8 h-8" />
-              </div>
-              <h3 className="text-xl font-bold mb-2">Create your first post</h3>
-              <p className="text-muted-foreground text-sm">Make this space your own.</p>
-            </div>
-          )}
         </div>
       </div>
 
+      {/* Content Tabs */}
+      <div className="sticky top-11 z-40 bg-background border-y border-border/30">
+        <div className="flex">
+          {[
+            { key: "posts" as const, icon: Grid },
+            { key: "reels" as const, icon: Film },
+            { key: "tagged" as const, icon: Bookmark },
+          ].map(({ key, icon: Icon }) => (
+            <button
+              key={key}
+              onClick={() => setActiveTab(key)}
+              className={`flex-1 flex justify-center py-2.5 transition-all relative ${
+                activeTab === key ? "text-foreground" : "text-muted-foreground"
+              }`}
+            >
+              <Icon className="w-5 h-5" />
+              {activeTab === key && (
+                <motion.div
+                  layoutId="profileTab"
+                  className="absolute bottom-0 left-0 right-0 h-[1.5px] bg-foreground"
+                />
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Posts Grid */}
+      <div className="grid grid-cols-3 gap-[1px] bg-border/20">
+        {filteredPosts.length > 0 ? (
+          filteredPosts.map((post, i) => (
+            <motion.div
+              key={post.id}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: i * 0.03 }}
+              className="aspect-square bg-secondary relative cursor-pointer group"
+              onClick={() => user?.id && navigate(`/user/${user.id}/posts?postId=${post.id}`)}
+            >
+              {post.media_type === "video" || post.media_type === "reel" ? (
+                <>
+                  <video src={post.media_url} className="w-full h-full object-cover" />
+                  <Film className="absolute top-2 right-2 w-4 h-4 text-white drop-shadow-md" />
+                </>
+              ) : (
+                <img src={post.media_url} alt="" className="w-full h-full object-cover" />
+              )}
+              {/* Hover overlay */}
+              <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/10 transition-colors" />
+            </motion.div>
+          ))
+        ) : (
+          <div className="col-span-3 py-24 flex flex-col items-center justify-center text-center px-8">
+            <div className="w-16 h-16 rounded-full border-2 border-foreground/20 flex items-center justify-center mb-4">
+              <Camera className="w-7 h-7 text-foreground/20" />
+            </div>
+            <h3 className="text-lg font-bold mb-1">Share photos</h3>
+            <p className="text-muted-foreground text-[13px]">When you share photos, they will appear on your profile.</p>
+            <button
+              onClick={() => navigate("/create")}
+              className="mt-4 text-primary text-[13px] font-bold active:opacity-60"
+            >
+              Share your first photo
+            </button>
+          </div>
+        )}
+      </div>
+
       <BottomNav />
+
       {cropImageSrc && (
         <ImageCropDialog
           imageSrc={cropImageSrc}
@@ -412,7 +440,6 @@ export default function ProfilePage() {
         isOpen={!!selectedHighlight}
         onClose={() => setSelectedHighlight(null)}
       />
-
       {profile?.username && (
         <ShareProfileModal
           isOpen={isShareModalOpen}
