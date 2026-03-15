@@ -8,7 +8,7 @@ import { ArrowLeft, Check, X, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import type { Profile } from "@/hooks/useProfile";
 
-interface FriendRequestWithProfile {
+interface FollowRequestWithProfile {
   id: string;
   sender_id: string;
   receiver_id: string;
@@ -23,12 +23,12 @@ export default function FriendRequestsPage() {
   const queryClient = useQueryClient();
 
   const { data: requests = [], isLoading } = useQuery({
-    queryKey: ["friend-requests", user?.id],
+    queryKey: ["follow-requests", user?.id],
     queryFn: async () => {
       if (!user) return [];
 
       const { data: reqs } = await supabase
-        .from("friend_requests")
+        .from("follow_requests" as any)
         .select("*")
         .eq("receiver_id", user.id)
         .eq("status", "pending")
@@ -45,36 +45,47 @@ export default function FriendRequestsPage() {
       return reqs.map((req) => ({
         ...req,
         profile: (profiles || []).find((p) => p.user_id === req.sender_id) as Profile,
-      })) as FriendRequestWithProfile[];
+      })) as FollowRequestWithProfile[];
     },
     enabled: !!user,
   });
 
   const acceptMutation = useMutation({
-    mutationFn: async (requestId: string) => {
-      const { error } = await supabase
-        .from("friend_requests")
+    mutationFn: async (req: FollowRequestWithProfile) => {
+      // 1. Accept request
+      const { error: updateError } = await supabase
+        .from("follow_requests" as any)
         .update({ status: "accepted" })
-        .eq("id", requestId);
-      if (error) throw error;
-      toast.success("Friend request accepted! 🎉");
+        .eq("id", req.id);
+      
+      if (updateError) throw updateError;
+
+      // 2. Add to followers
+      const { error: followError } = await supabase
+        .from("followers" as any)
+        .insert({ follower_id: req.sender_id, following_id: user!.id });
+      
+      if (followError && followError.code !== "23505") throw followError;
+
+      toast.success("Follower approved! 🎉");
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["friend-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["follow-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["follow-status"] });
     },
   });
 
   const rejectMutation = useMutation({
     mutationFn: async (requestId: string) => {
       const { error } = await supabase
-        .from("friend_requests")
-        .update({ status: "rejected" })
+        .from("follow_requests" as any)
+        .delete()
         .eq("id", requestId);
       if (error) throw error;
       toast("Request declined");
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["friend-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["follow-requests"] });
     },
   });
 
@@ -84,7 +95,7 @@ export default function FriendRequestsPage() {
         <button onClick={() => navigate(-1)}>
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <h1 className="text-lg font-heading font-bold">Friend Requests</h1>
+        <h1 className="text-lg font-heading font-bold">Follow Requests</h1>
       </div>
 
       <div className="p-4">
@@ -122,11 +133,11 @@ export default function FriendRequestsPage() {
                   <h4 className="font-semibold text-sm truncate">
                     {req.profile?.name || "Someone"}
                   </h4>
-                  <p className="text-xs text-muted-foreground">Wants to be your friend</p>
+                  <p className="text-xs text-muted-foreground">Wants to follow you</p>
                 </div>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => acceptMutation.mutate(req.id)}
+                    onClick={() => acceptMutation.mutate(req)}
                     className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center shadow-glow"
                   >
                     <Check className="w-4 h-4 text-primary-foreground" />

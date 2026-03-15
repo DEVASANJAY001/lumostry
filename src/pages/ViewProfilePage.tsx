@@ -1,9 +1,9 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
-import { ArrowLeft, Heart, UserPlus, Shield, MessageCircle, Flag, Image } from "lucide-react";
+import { ArrowLeft, Heart, UserPlus, Shield, MessageCircle, Flag, Image, Lock, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import type { Profile } from "@/hooks/useProfile";
@@ -11,11 +11,13 @@ import { useState } from "react";
 import ReportUserModal from "@/components/ReportUserModal";
 import PageTransition from "@/components/PageTransition";
 import VerifiedBadge from "@/components/VerifiedBadge";
+import { useFollow } from "@/hooks/useFollow";
 
 export default function ViewProfilePage() {
   const { userId } = useParams<{ userId: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [showReport, setShowReport] = useState(false);
   const [photoIndex, setPhotoIndex] = useState(0);
 
@@ -31,6 +33,8 @@ export default function ViewProfilePage() {
     },
     enabled: !!userId,
   });
+
+  const { followStatus, follow, unfollow, isPending: followPending } = useFollow(userId);
 
   // Track profile visit
   useQuery({
@@ -71,16 +75,6 @@ export default function ViewProfilePage() {
     },
   });
 
-  const friendMutation = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase
-        .from("friend_requests")
-        .insert({ sender_id: user!.id, receiver_id: userId! });
-      if (error) throw error;
-      toast.success("Friend request sent! 👋");
-    },
-  });
-
   const blockMutation = useMutation({
     mutationFn: async () => {
       const { error } = await supabase
@@ -94,6 +88,8 @@ export default function ViewProfilePage() {
 
   if (!profile) return null;
 
+  const isLocked = profile.is_private && !followStatus?.isFollowing && user?.id !== userId;
+
   const allPhotos = [
     ...(profile.avatar_url ? [profile.avatar_url] : []),
     ...(profile.photos || []),
@@ -101,6 +97,41 @@ export default function ViewProfilePage() {
 
   const GENDER_LABELS: Record<string, string> = {
     male: "Male", female: "Female", non_binary: "Non-binary", prefer_not_to_say: "Prefer not to say",
+  };
+
+  const getFollowButton = () => {
+    if (followStatus?.isFollowing) {
+      return (
+        <Button
+          variant="secondary"
+          className="flex-1 h-12 rounded-2xl"
+          onClick={() => unfollow()}
+          disabled={followPending}
+        >
+          Following
+        </Button>
+      );
+    }
+    if (followStatus?.hasPendingRequest) {
+      return (
+        <Button
+          variant="secondary"
+          className="flex-1 h-12 rounded-2xl opacity-70"
+          disabled
+        >
+          Requested
+        </Button>
+      );
+    }
+    return (
+      <Button
+        className="flex-1 h-12 rounded-2xl gradient-primary text-primary-foreground shadow-glow"
+        onClick={() => follow(profile.is_private || false)}
+        disabled={followPending}
+      >
+        <UserPlus className="w-4 h-4 mr-2" /> Follow
+      </Button>
+    );
   };
 
   return (
@@ -114,7 +145,7 @@ export default function ViewProfilePage() {
           <ArrowLeft className="w-5 h-5" />
         </button>
 
-        {allPhotos.length > 0 ? (
+        {!isLocked && allPhotos.length > 0 ? (
           <>
             <motion.img
               key={photoIndex}
@@ -142,6 +173,14 @@ export default function ViewProfilePage() {
               <div className="flex-1" onClick={() => setPhotoIndex(Math.min(allPhotos.length - 1, photoIndex + 1))} />
             </div>
           </>
+        ) : isLocked ? (
+          <div className="w-full h-full bg-secondary/50 backdrop-blur-md flex flex-col items-center justify-center p-10 text-center">
+            <div className="w-20 h-20 rounded-full bg-background/50 flex items-center justify-center mb-6 shadow-xl">
+              <Lock className="w-8 h-8 text-primary" />
+            </div>
+            <h3 className="text-xl font-heading font-bold mb-2">This account is private</h3>
+            <p className="text-sm text-muted-foreground max-w-[200px]">Follow this user to see their photos and posts</p>
+          </div>
         ) : (
           <div className="w-full h-full bg-secondary flex items-center justify-center text-8xl">
             {profile.gender === "female" ? "👩" : profile.gender === "male" ? "👨" : "🧑"}
@@ -182,10 +221,68 @@ export default function ViewProfilePage() {
           </div>
         </motion.div>
 
+        {/* Action buttons */}
+        {user?.id !== userId && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mt-6 space-y-3">
+            <div className="flex gap-3">
+              {getFollowButton()}
+              <Button
+                onClick={() => likeMutation.mutate()}
+                disabled={likeMutation.isPending}
+                variant="outline"
+                className="flex-1 h-12 rounded-2xl border-primary/20 text-primary hover:bg-primary/5"
+              >
+                <Heart className="w-4 h-4 mr-2" /> Like
+              </Button>
+            </div>
+
+            {!isLocked && (
+              <Button
+                onClick={() => navigate(`/gallery/${userId}`)}
+                variant="secondary"
+                className="w-full h-12 rounded-2xl"
+              >
+                <Image className="w-4 h-4 mr-2" /> View Gallery
+              </Button>
+            )}
+
+            <div className="flex gap-3">
+              {isMatched ? (
+                <Button
+                  onClick={() => navigate(`/chat/${userId}`)}
+                  variant="secondary"
+                  className="flex-1 h-12 rounded-2xl"
+                >
+                  <MessageCircle className="w-4 h-4 mr-2" /> Message
+                </Button>
+              ) : (
+                <div className="flex-1 text-center py-3 rounded-2xl bg-secondary text-muted-foreground text-sm flex items-center justify-center gap-2">
+                  <Shield className="w-3.5 h-3.5" /> Match to unlock chat
+                </div>
+              )}
+              <Button
+                onClick={() => blockMutation.mutate()}
+                variant="outline"
+                className="h-12 rounded-2xl text-destructive hover:text-destructive border-destructive/20"
+              >
+                <Shield className="w-4 h-4" />
+              </Button>
+              <Button
+                onClick={() => setShowReport(true)}
+                variant="outline"
+                className="h-12 rounded-2xl text-destructive hover:text-destructive border-destructive/20"
+              >
+                <Flag className="w-4 h-4" />
+              </Button>
+            </div>
+          </motion.div>
+        )}
+
         {/* Bio */}
         {profile.bio && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
             <div className="mt-4 p-4 rounded-2xl glass-card">
+              <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">About</h3>
               <p className="text-sm text-foreground/80 leading-relaxed">{profile.bio}</p>
             </div>
           </motion.div>
@@ -206,67 +303,6 @@ export default function ViewProfilePage() {
                   {i}
                 </motion.span>
               ))}
-            </div>
-          </motion.div>
-        )}
-
-        {/* Action buttons */}
-        {user?.id !== userId && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mt-6 space-y-3">
-            <div className="flex gap-3">
-              <Button
-                onClick={() => likeMutation.mutate()}
-                disabled={likeMutation.isPending}
-                className="flex-1 h-12 rounded-2xl gradient-primary text-primary-foreground shadow-glow"
-              >
-                <Heart className="w-4 h-4 mr-2" fill="currentColor" /> Like
-              </Button>
-              <Button
-                onClick={() => friendMutation.mutate()}
-                disabled={friendMutation.isPending}
-                variant="outline"
-                className="flex-1 h-12 rounded-2xl"
-              >
-                <UserPlus className="w-4 h-4 mr-2" /> Add Friend
-              </Button>
-            </div>
-
-            <Button
-              onClick={() => navigate(`/gallery/${userId}`)}
-              variant="secondary"
-              className="w-full h-12 rounded-2xl"
-            >
-              <Image className="w-4 h-4 mr-2" /> View Gallery
-            </Button>
-
-            <div className="flex gap-3">
-              {isMatched ? (
-                <Button
-                  onClick={() => navigate(`/chat/${userId}`)}
-                  variant="secondary"
-                  className="flex-1 h-12 rounded-2xl"
-                >
-                  <MessageCircle className="w-4 h-4 mr-2" /> Message
-                </Button>
-              ) : (
-                <div className="flex-1 text-center py-3 rounded-2xl bg-secondary text-muted-foreground text-sm">
-                  Match to unlock chat 💬
-                </div>
-              )}
-              <Button
-                onClick={() => blockMutation.mutate()}
-                variant="outline"
-                className="h-12 rounded-2xl text-destructive hover:text-destructive border-destructive/20"
-              >
-                <Shield className="w-4 h-4" />
-              </Button>
-              <Button
-                onClick={() => setShowReport(true)}
-                variant="outline"
-                className="h-12 rounded-2xl text-destructive hover:text-destructive border-destructive/20"
-              >
-                <Flag className="w-4 h-4" />
-              </Button>
             </div>
           </motion.div>
         )}

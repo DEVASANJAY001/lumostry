@@ -17,27 +17,34 @@ export default function FeedPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const { data: posts = [], isLoading, refetch } = useQuery({
-    queryKey: ["posts"],
+    queryKey: ["posts", user?.id],
     queryFn: async () => {
-      // In a real app, we'd join with likes/saves for the current user
+      if (!user) return [];
+
+      // 1. Get the list of people the user follows
+      const { data: followingData } = await supabase
+        .from("followers" as any)
+        .select("following_id")
+        .eq("follower_id", user.id);
+      
+      const followedIds = (followingData || []).map(f => f.following_id);
+      
+      // 2. Query posts that are either:
+      // - From public accounts (is_private = false)
+      // - From people the user follows
+      // - From the user themselves
       const { data, error } = await supabase
         .from("posts")
         .select(`
           *,
-          profiles:user_id (name, username, avatar_url)
+          profiles!inner (name, username, avatar_url, is_private)
         `)
+        .or(`profiles.is_private.eq.false,user_id.in.(${[user.id, ...followedIds].join(",")})`)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
       
-      // Mocking some counts for now since we don't have aggregation queries yet
-      return (data || []).map(post => ({
-        ...post,
-        likes_count: Math.floor(Math.random() * 50),
-        comments_count: Math.floor(Math.random() * 10),
-        is_liked: false,
-        is_saved: false
-      }));
+      return data || [];
     },
     enabled: !!user
   });
