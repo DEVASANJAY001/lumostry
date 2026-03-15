@@ -7,8 +7,6 @@ import BottomNav from "@/components/BottomNav";
 import PageTransition from "@/components/PageTransition";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { toast } from "sonner";
-import { motion, AnimatePresence } from "framer-motion";
 import { Search, Sparkles, Users, SlidersHorizontal, X, CheckCircle, Coins, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
