@@ -51,17 +51,17 @@ export default function StoryViewer({ userId, isOpen, onClose }: StoryViewerProp
     queryKey: ["story-viewers", stories[currentIndex]?.id],
     queryFn: async () => {
       if (!stories[currentIndex]?.id || stories[currentIndex]?.user_id !== user?.id) return [];
-      const { data, error } = await supabase
+      const { data, error } = await (supabase
         .from("story_views")
         .select(`
           viewed_at,
           profiles:viewer_id (username, avatar_url, name)
         `)
         .eq("story_id", stories[currentIndex].id)
-        .order("viewed_at", { ascending: false });
+        .order("viewed_at", { ascending: false }) as any);
       
       if (error) throw error;
-      return data || [];
+      return (data || []) as any[];
     },
     enabled: isOpen && stories.length > 0 && stories[currentIndex]?.user_id === user?.id,
   });
