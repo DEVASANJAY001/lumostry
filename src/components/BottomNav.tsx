@@ -8,8 +8,8 @@ import { Home, Search, PlaySquare, Heart, User, Compass } from "lucide-react";
 
 const NAV_ITEMS = [
   { path: "/feed", icon: Home, label: "Home" },
+  { path: "/search", icon: Compass, label: "Discover" },
   { path: "/discover", icon: Search, label: "Search" },
-  { path: "/explore", icon: PlaySquare, label: "Reels" }, // PlaySquare for Reels-like look
   { path: "/matches", icon: Heart, label: "Activity" },
   { path: "/profile", icon: User, label: "Profile" },
 ];

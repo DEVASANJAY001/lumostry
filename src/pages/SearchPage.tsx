@@ -7,7 +7,7 @@ import BottomNav from "@/components/BottomNav";
 import PageTransition from "@/components/PageTransition";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Sparkles, Users, SlidersHorizontal, X, CheckCircle, Coins, ArrowLeft } from "lucide-react";
+import { Search, Sparkles, Users, SlidersHorizontal, X, CheckCircle, Coins, ArrowLeft, Compass } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 type GenderFilter = "male" | "female" | "everyone";
@@ -245,8 +245,8 @@ export default function SearchPage() {
             <ArrowLeft className="w-4 h-4 text-foreground" />
           </button>
           <div className="flex items-center gap-2 flex-1">
-            <Search className="w-5 h-5 text-primary hidden sm:block" />
-            <h1 className="text-xl font-heading font-bold text-gradient">Search</h1>
+            <Compass className="w-5 h-5 text-primary hidden sm:block" />
+            <h1 className="text-xl font-heading font-bold text-gradient">Discover</h1>
           </div>
           <button
             onClick={() => setShowFilters(!showFilters)}
