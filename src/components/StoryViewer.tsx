@@ -30,19 +30,19 @@ export default function StoryViewer({ userId, isOpen, onClose }: StoryViewerProp
     queryKey: ["user-stories", userId],
     queryFn: async () => {
       if (!userId) return [];
-      const { data, error } = await supabase
+      const { data, error } = await (supabase
         .from("stories")
         .select(`
           *,
-          profiles (username, avatar_url),
+          profiles:user_id (username, avatar_url),
           story_mentions(user_id, profiles:user_id(username))
         `)
         .eq("user_id", userId)
         .gt("expires_at", new Date().toISOString())
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: true }) as any);
       
       if (error) throw error;
-      return data || [];
+      return (data || []) as any[];
     },
     enabled: isOpen && !!userId,
   });
