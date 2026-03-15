@@ -135,7 +135,7 @@ export default function SearchPage() {
       const { data, error } = await query;
       if (error) throw error;
 
-      let results = [...(data || [])] as Profile[];
+      let results = [...(data || [])] as any[];
 
       if (selectedInterests.length > 0) {
         results = results.filter(p => p.interests?.some(i => selectedInterests.includes(i)));

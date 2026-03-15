@@ -18,7 +18,9 @@ export type Profile = {
   is_online: boolean | null;
   is_verified: boolean | null;
   is_private: boolean | null;
+  show_online_status: boolean | null;
   verification_photo_url: string | null;
+  verified_until: string | null;
   last_seen: string | null;
   profile_complete: boolean | null;
   created_at: string;

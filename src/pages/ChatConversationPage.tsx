@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Send, MoreVertical, Shield, Flag, ImagePlus, Loader2, Check, CheckCheck, Heart, X, Phone, Video, Info, Mic, Camera, Smile, PlusCircle, Film } from "lucide-react";
+import { ArrowLeft, Send, MoreVertical, Shield, Flag, ImagePlus, Loader2, Check, CheckCheck, Heart, X, Phone, Video, Info, Mic, Camera, Smile, PlusCircle, Film, MessageCircle } from "lucide-react";
 import ReportUserModal from "@/components/ReportUserModal";
 import TypingIndicator from "@/components/TypingIndicator";
 import { format, formatDistanceToNow } from "date-fns";
