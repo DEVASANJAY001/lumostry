@@ -52,9 +52,9 @@ export default function FeedPage() {
 
   return (
     <PageTransition className="min-h-screen pb-20">
-      {/* Instagram-style Header */}
+      {/* Lumos Header */}
       <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border px-4 py-2 flex items-center justify-between">
-        <h1 className="text-2xl brand-logo flex-shrink-0">Instagram</h1>
+        <h1 className="text-2xl brand-logo flex-shrink-0">Lumos</h1>
         
         <div className="flex items-center gap-4">
           <button 
@@ -76,9 +76,7 @@ export default function FeedPage() {
             >
               <Send className="w-6 h-6 rotate-[ -15deg]" />
             </button>
-            <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-background flex items-center justify-center">
-              <span className="text-[10px] text-white font-bold">14</span>
-            </div>
+            {/* The badge will be handled by BottomNav for consistency, or we can fetch it here */}
           </div>
         </div>
       </div>

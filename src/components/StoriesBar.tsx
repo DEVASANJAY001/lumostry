@@ -18,15 +18,7 @@ interface StoriesBarProps {
 export default function StoriesBar({ stories }: StoriesBarProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const mockUsers = [
-    { id: "1", username: "shazz_06_", avatar_url: "https://i.pravatar.cc/150?u=shazz", hasUnseen: true },
-    { id: "2", username: "mathstrade", avatar_url: "https://i.pravatar.cc/150?u=maths", hasUnseen: true },
-    { id: "3", username: "rakshuuu", avatar_url: "https://i.pravatar.cc/150?u=raksh", hasUnseen: true },
-    { id: "4", username: "karthic", avatar_url: "https://i.pravatar.cc/150?u=karth", hasUnseen: false },
-    { id: "5", username: "priya_v", avatar_url: "https://i.pravatar.cc/150?u=priya", hasUnseen: false },
-  ];
-
-  const allStories = stories.length > 0 ? stories : mockUsers;
+  const allStories = stories;
 
   return (
     <div className="flex items-center gap-4 p-4 overflow-x-auto scrollbar-hide bg-background border-b border-border/50">

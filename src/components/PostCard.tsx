@@ -168,7 +168,7 @@ export default function PostCard({ post, onLike, onComment, onSave, onReport }: 
               {post.profiles?.username || post.profiles?.name}
               {post.profiles?.is_verified && <div className="w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center"><Send className="w-2 h-2 text-white fill-current" /></div>}
             </h4>
-            <span className="text-[11px] text-foreground/80 mt-0.5">Tamil Nadu</span>
+            <span className="text-[11px] text-foreground/80 mt-0.5">{post.location || "Public"}</span>
           </div>
         </div>
         <button 

@@ -138,18 +138,8 @@ export default function DiscoverPage() {
                   <Play className="absolute top-2 right-2 w-4 h-4 text-white drop-shadow-md fill-current" />
                 )}
 
-                {/* Hover Overlay - View Count (Simulated like screenshot) */}
-                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-                   <div className="flex items-center gap-1.5 text-white font-bold text-sm">
-                      <Heart className="w-4 h-4 fill-current" />
-                      <span>{Math.floor(Math.random() * 100)}K</span>
-                   </div>
-                </div>
-
-                {/* Bottom View Count (As shown in user screenshot) */}
-                <div className="absolute bottom-2 left-2 flex items-center gap-1 text-[10px] text-white font-bold drop-shadow-md lg:hidden">
-                  <Play className="w-3 h-3 fill-current" />
-                  <span>{Math.floor(Math.random() * 10) + 1}.{Math.floor(Math.random() * 9)}M</span>
+                {/* Hover Overlay - Simplified */}
+                <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
                 </div>
               </motion.div>
             ))}
