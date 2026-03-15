@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Loader2, X, ChevronLeft, ChevronRight, MoreVertical } from "lucide-react";
+import { Loader2, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { formatDistanceToNow } from "date-fns";
@@ -21,17 +22,17 @@ export default function HighlightViewer({ highlight, isOpen, onClose }: Highligh
     queryKey: ["highlight-stories", highlight?.id],
     queryFn: async () => {
       if (!highlight) return [];
-      const { data, error } = await supabase
-        .from("highlight_items")
+      const { data, error } = await (supabase
+        .from("highlight_items" as any)
         .select(`
           story_id,
           stories (*)
         `)
         .eq("highlight_id", highlight.id)
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: true }) as any);
       
       if (error) throw error;
-      return (data || []).map(item => (item as any).stories);
+      return (data || []).map((item: any) => item.stories) as any[];
     },
     enabled: isOpen && !!highlight,
   });

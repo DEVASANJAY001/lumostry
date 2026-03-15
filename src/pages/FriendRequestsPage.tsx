@@ -27,22 +27,22 @@ export default function FriendRequestsPage() {
     queryFn: async () => {
       if (!user) return [];
 
-      const { data: reqs } = await supabase
+      const { data: reqs } = await (supabase
         .from("follow_requests" as any)
         .select("*")
         .eq("receiver_id", user.id)
         .eq("status", "pending")
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false }) as any);
 
       if (!reqs || reqs.length === 0) return [];
 
-      const senderIds = reqs.map((r) => r.sender_id);
+      const senderIds = (reqs as any[]).map((r) => r.sender_id);
       const { data: profiles } = await supabase
         .from("profiles")
         .select("*")
         .in("user_id", senderIds);
 
-      return reqs.map((req) => ({
+      return (reqs as any[]).map((req) => ({
         ...req,
         profile: (profiles || []).find((p) => p.user_id === req.sender_id) as Profile,
       })) as FollowRequestWithProfile[];

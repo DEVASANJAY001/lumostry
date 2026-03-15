@@ -19,17 +19,17 @@ export function useFollow(targetUserId: string | undefined) {
         .eq("following_id", targetUserId)
         .maybeSingle();
 
-      const { data: request } = await supabase
+      const { data: request } = await (supabase
         .from("follow_requests" as any)
         .select("*")
         .eq("sender_id", user.id)
         .eq("receiver_id", targetUserId)
-        .maybeSingle();
+        .maybeSingle() as any);
 
       return {
         isFollowing: !!following,
-        hasPendingRequest: request?.status === "pending",
-        requestId: request?.id
+        hasPendingRequest: (request as any)?.status === "pending",
+        requestId: (request as any)?.id
       };
     },
     enabled: !!user && !!targetUserId,

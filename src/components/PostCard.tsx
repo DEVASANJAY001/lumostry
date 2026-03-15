@@ -64,14 +64,14 @@ export default function PostCard({ post, onLike, onComment, onSave, onReport, on
 
   const fetchComments = async () => {
     setLoadingComments(true);
-    const { data } = await supabase
-      .from("post_comments")
+    const { data } = await (supabase
+      .from("post_comments" as any)
       .select(`
         *,
         profiles:user_id (name, avatar_url)
       `)
       .eq("post_id", post.id)
-      .order("created_at", { ascending: true });
+      .order("created_at", { ascending: true }) as any);
 
     setComments(data || []);
     setLoadingComments(false);

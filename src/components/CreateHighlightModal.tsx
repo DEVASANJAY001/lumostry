@@ -54,15 +54,15 @@ export default function CreateHighlightModal({ isOpen, onClose, onSuccess }: Cre
       // Note: We'll use the first selected story's media_url as a temporary cover
       const coverUrl = userStories.find(s => s.id === selectedStoryIds[0])?.media_url;
 
-      const { data: highlight, error: hError } = await supabase
-        .from("highlights")
+      const { data: highlight, error: hError } = await (supabase
+        .from("highlights" as any)
         .insert({
           user_id: user.id,
           title: title.trim(),
           cover_url: coverUrl
         })
         .select()
-        .single();
+        .single() as any);
 
       if (hError) throw hError;
 
@@ -72,9 +72,9 @@ export default function CreateHighlightModal({ isOpen, onClose, onSuccess }: Cre
         story_id: storyId
       }));
 
-      const { error: iError } = await supabase
-        .from("highlight_items")
-        .insert(items);
+      const { error: iError } = await (supabase
+        .from("highlight_items" as any)
+        .insert(items) as any);
 
       if (iError) throw iError;
 

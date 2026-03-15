@@ -30,19 +30,19 @@ export default function StoryViewer({ userId, isOpen, onClose }: StoryViewerProp
     queryKey: ["user-stories", userId],
     queryFn: async () => {
       if (!userId) return [];
-      const { data, error } = await supabase
+      const { data, error } = await (supabase
         .from("stories")
         .select(`
           *,
-          profiles (username, avatar_url),
+          profiles:user_id (username, avatar_url),
           story_mentions(user_id, profiles:user_id(username))
         `)
         .eq("user_id", userId)
         .gt("expires_at", new Date().toISOString())
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: true }) as any);
       
       if (error) throw error;
-      return data || [];
+      return (data || []) as any[];
     },
     enabled: isOpen && !!userId,
   });
@@ -51,17 +51,17 @@ export default function StoryViewer({ userId, isOpen, onClose }: StoryViewerProp
     queryKey: ["story-viewers", stories[currentIndex]?.id],
     queryFn: async () => {
       if (!stories[currentIndex]?.id || stories[currentIndex]?.user_id !== user?.id) return [];
-      const { data, error } = await supabase
+      const { data, error } = await (supabase
         .from("story_views")
         .select(`
           viewed_at,
           profiles:viewer_id (username, avatar_url, name)
         `)
         .eq("story_id", stories[currentIndex].id)
-        .order("viewed_at", { ascending: false });
+        .order("viewed_at", { ascending: false }) as any);
       
       if (error) throw error;
-      return data || [];
+      return (data || []) as any[];
     },
     enabled: isOpen && stories.length > 0 && stories[currentIndex]?.user_id === user?.id,
   });
@@ -69,9 +69,9 @@ export default function StoryViewer({ userId, isOpen, onClose }: StoryViewerProp
   const recordViewMutation = useMutation({
     mutationFn: async (storyId: string) => {
       if (!user || userId === user.id) return;
-      await supabase
+      await (supabase
         .from("story_views")
-        .upsert({ story_id: storyId, viewer_id: user.id }, { onConflict: "story_id,viewer_id" });
+        .upsert({ story_id: storyId, viewer_id: user.id } as any, { onConflict: "story_id,viewer_id" }) as any);
     },
   });
 
