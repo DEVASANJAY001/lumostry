@@ -12,10 +12,11 @@ import { motion } from "framer-motion";
 import BottomNav from "@/components/BottomNav";
 import ImageCropDialog from "@/components/ImageCropDialog";
 import {
-  ArrowLeft, Camera, Plus, X, Upload, Save,
+  ArrowLeft, Camera, Plus, X, Upload, Save, Eye, EyeOff, Lock, Unlock, Settings
 } from "lucide-react";
 import { format, differenceInYears } from "date-fns";
 import { cn } from "@/lib/utils";
+import { Switch } from "@/components/ui/switch";
 
 
 const INTERESTS = [
@@ -53,6 +54,8 @@ export default function EditProfilePage() {
     gender: profile?.gender || ("" as typeof profile.gender | ""),
     preference: profile?.preference || ("" as typeof profile.preference | ""),
     interests: profile?.interests || [],
+    show_online_status: profile?.show_online_status ?? true,
+    is_private: profile?.is_private ?? false,
   }));
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(profile?.avatar_url || null);
@@ -148,6 +151,8 @@ export default function EditProfilePage() {
         avatar_url,
         photos,
         profile_complete: true,
+        show_online_status: form.show_online_status,
+        is_private: form.is_private,
       });
 
       toast.success("Profile saved! ✨");
@@ -360,6 +365,44 @@ export default function EditProfilePage() {
                 {interest}
               </button>
             ))}
+          </div>
+        </motion.div>
+
+        {/* Privacy & Settings */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }} className="space-y-4 pt-2">
+          <h3 className="font-heading font-semibold flex items-center gap-2">
+            <Settings className="w-4 h-4 text-primary" />
+            Privacy & Status
+          </h3>
+          
+          <div className="bg-card border border-border rounded-2xl p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2">
+                  <Eye className="w-4 h-4 text-success" />
+                  <span className="text-sm font-medium">Active Status</span>
+                </div>
+                <p className="text-[10px] text-muted-foreground">Show when you're online</p>
+              </div>
+              <Switch 
+                checked={form.show_online_status} 
+                onCheckedChange={(checked) => setForm({ ...form, show_online_status: checked })} 
+              />
+            </div>
+            
+            <div className="border-t border-border pt-4 flex items-center justify-between">
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-amber-500" />
+                  <span className="text-sm font-medium">Private Account</span>
+                </div>
+                <p className="text-[10px] text-muted-foreground">Only friends can see your posts</p>
+              </div>
+              <Switch 
+                checked={form.is_private} 
+                onCheckedChange={(checked) => setForm({ ...form, is_private: checked })} 
+              />
+            </div>
           </div>
         </motion.div>
       </div>

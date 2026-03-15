@@ -1,16 +1,15 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Flame, MessageCircle, Heart, User, Search, Bell } from "lucide-react";
+import { Flame, MessageCircle, Heart, User, Search, Bell, LayoutGrid } from "lucide-react";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 const NAV_ITEMS = [
+  { path: "/feed", icon: LayoutGrid, label: "Feed" },
   { path: "/discover", icon: Flame, label: "Discover" },
-  { path: "/search", icon: Search, label: "Explore" },
   { path: "/matches", icon: Heart, label: "Matches" },
   { path: "/chats", icon: MessageCircle, label: "Chat" },
-  { path: "/notifications", icon: Bell, label: "Alerts" },
   { path: "/profile", icon: User, label: "Me" },
 ];
 

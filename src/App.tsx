@@ -28,6 +28,7 @@ import MyGalleryPage from "./pages/MyGalleryPage";
 import UserGalleryPage from "./pages/UserGalleryPage";
 import WhoLikedMePage from "./pages/WhoLikedMePage";
 import ProfileVisitorsPage from "./pages/ProfileVisitorsPage";
+import FeedPage from "./pages/FeedPage";
 import NotFound from "./pages/NotFound";
 import { Sparkles } from "lucide-react";
 
@@ -67,6 +68,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<Navigate to="/discover" replace />} />
+      <Route path="/feed" element={<FeedPage />} />
       <Route path="/discover" element={<DiscoverPage />} />
       <Route path="/search" element={<SearchPage />} />
       <Route path="/matches" element={<MatchesPage />} />

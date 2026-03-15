@@ -284,7 +284,7 @@ export default function ChatConversationPage() {
                 </div>
               )}
             </div>
-            {otherProfile?.is_online && (
+            {otherProfile?.is_online && (otherProfile?.show_online_status ?? true) && (
               <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-success border-2 border-card animate-pulse" />
             )}
           </div>
@@ -299,7 +299,7 @@ export default function ChatConversationPage() {
                 >
                   typing...
                 </motion.span>
-              ) : otherProfile?.is_online ? "Online" : "Offline"}
+              ) : (otherProfile?.is_online && (otherProfile?.show_online_status ?? true)) ? "Online" : "Offline"}
             </p>
           </div>
         </button>
@@ -390,17 +390,19 @@ export default function ChatConversationPage() {
                           <p className="leading-relaxed">{msg.content}</p>
                         )}
 
-                        <div className={`flex items-center gap-1 mt-1 ${isMine ? "justify-end" : ""}`}>
-                          <span className={`text-[10px] ${isMine ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
-                            {format(new Date(msg.created_at), "HH:mm")}
-                          </span>
-                          {isMine && (
-                            msg.is_read ? (
-                              <CheckCheck className="w-3.5 h-3.5 text-primary-foreground/80" />
-                            ) : (
-                              <Check className="w-3.5 h-3.5 text-primary-foreground/40" />
-                            )
-                          )}
+                        <div className={`flex flex-col mt-1 ${isMine ? "items-end" : "items-start"}`}>
+                          <div className="flex items-center gap-1">
+                            <span className={`text-[10px] ${isMine ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
+                              {format(new Date(msg.created_at), "HH:mm")}
+                            </span>
+                            {isMine && (
+                              <span className="text-[9px] font-medium text-primary-foreground/80 lowercase italic">
+                                {msg.is_read 
+                                  ? `Seen ${formatDistanceToNow(new Date(msg.created_at), { addSuffix: false })} ago` 
+                                  : `Sent ${formatDistanceToNow(new Date(msg.created_at), { addSuffix: false })} ago`}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
 
