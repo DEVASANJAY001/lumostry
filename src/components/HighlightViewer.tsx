@@ -22,17 +22,17 @@ export default function HighlightViewer({ highlight, isOpen, onClose }: Highligh
     queryKey: ["highlight-stories", highlight?.id],
     queryFn: async () => {
       if (!highlight) return [];
-      const { data, error } = await supabase
-        .from("highlight_items")
+      const { data, error } = await (supabase
+        .from("highlight_items" as any)
         .select(`
           story_id,
           stories (*)
         `)
         .eq("highlight_id", highlight.id)
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: true }) as any);
       
       if (error) throw error;
-      return (data || []).map(item => (item as any).stories);
+      return (data || []).map((item: any) => item.stories) as any[];
     },
     enabled: isOpen && !!highlight,
   });

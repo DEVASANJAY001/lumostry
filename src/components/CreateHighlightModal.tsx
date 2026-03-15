@@ -72,9 +72,9 @@ export default function CreateHighlightModal({ isOpen, onClose, onSuccess }: Cre
         story_id: storyId
       }));
 
-      const { error: iError } = await supabase
-        .from("highlight_items")
-        .insert(items);
+      const { error: iError } = await (supabase
+        .from("highlight_items" as any)
+        .insert(items) as any);
 
       if (iError) throw iError;
 
