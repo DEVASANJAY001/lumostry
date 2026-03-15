@@ -67,10 +67,10 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/discover" replace />} />
+      <Route path="/" element={<Navigate to="/feed" replace />} />
       <Route path="/feed" element={<FeedPage />} />
-      <Route path="/discover" element={<DiscoverPage />} />
-      <Route path="/search" element={<SearchPage />} />
+      <Route path="/search" element={<DiscoverPage />} />
+      <Route path="/discover" element={<SearchPage />} />
       <Route path="/matches" element={<MatchesPage />} />
       <Route path="/chats" element={<ChatsPage />} />
       <Route path="/chat/:userId" element={<ChatConversationPage />} />
