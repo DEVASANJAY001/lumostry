@@ -35,12 +35,12 @@ export default function NotesBar() {
     queryFn: async () => {
       if (!user) return [];
 
-      const { data: following } = await supabase
+      const { data: following } = await (supabase
         .from("followers" as any)
         .select("following_id")
-        .eq("follower_id", user.id);
+        .eq("follower_id", user.id) as any);
       
-      const ids = [user.id, ...(following || []).map(f => f.following_id)];
+      const ids = [user.id, ...(following || []).map((f: any) => f.following_id)];
 
       const { data, error } = await supabase
         .from("notes" as any)

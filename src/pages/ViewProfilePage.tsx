@@ -147,13 +147,13 @@ export default function ViewProfilePage() {
     queryKey: ["user-highlights", effectiveUserId],
     queryFn: async () => {
       if (!effectiveUserId) return [];
-      const { data, error } = await supabase
+      const { data, error } = await (supabase
         .from("highlights" as any)
         .select("*")
         .eq("user_id", effectiveUserId)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false }) as any);
       if (error) throw error;
-      return data || [];
+      return (data || []) as any[];
     },
     enabled: !!effectiveUserId,
   });

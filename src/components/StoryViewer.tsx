@@ -69,9 +69,9 @@ export default function StoryViewer({ userId, isOpen, onClose }: StoryViewerProp
   const recordViewMutation = useMutation({
     mutationFn: async (storyId: string) => {
       if (!user || userId === user.id) return;
-      await supabase
+      await (supabase
         .from("story_views")
-        .upsert({ story_id: storyId, viewer_id: user.id }, { onConflict: "story_id,viewer_id" });
+        .upsert({ story_id: storyId, viewer_id: user.id } as any, { onConflict: "story_id,viewer_id" }) as any);
     },
   });
 
