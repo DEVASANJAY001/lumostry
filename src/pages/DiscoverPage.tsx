@@ -1,165 +1,168 @@
-import { useState, useRef } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useProfile } from "@/hooks/useProfile";
-import ProfileCard from "@/components/ProfileCard";
 import BottomNav from "@/components/BottomNav";
-import StoriesBar from "@/components/StoriesBar";
-import MatchPopup from "@/components/MatchPopup";
-import BoostModal from "@/components/BoostModal";
 import PageTransition from "@/components/PageTransition";
-import { toast } from "sonner";
-import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Undo2, Zap, Heart, ArrowLeft } from "lucide-react";
+import { Search, Loader2, Play, Users, Heart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import type { Profile } from "@/hooks/useProfile";
+import { Input } from "@/components/ui/input";
+import { motion, AnimatePresence } from "framer-motion";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 export default function DiscoverPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { data: myProfile } = useProfile();
-  const queryClient = useQueryClient();
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [showMatch, setShowMatch] = useState(false);
-  const [matchedProfile, setMatchedProfile] = useState<Profile | null>(null);
-  const [showBoost, setShowBoost] = useState(false);
-  const [lastSwiped, setLastSwiped] = useState<{ index: number; action: "like" | "pass" | "superlike" } | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const { data: profiles = [], isLoading } = useQuery({
-    queryKey: ["discover", user?.id, myProfile?.preference],
+  const { data: explorePosts = [], isLoading: postsLoading } = useQuery({
+    queryKey: ["explore-posts"],
     queryFn: async () => {
-      if (!user) return [];
-      const { data: likedData } = await supabase.from("likes").select("liked_id").eq("liker_id", user.id);
-      const likedIds = (likedData || []).map((l) => l.liked_id);
-      const { data: blockedData } = await supabase.from("blocked_users").select("blocked_id").eq("blocker_id", user.id);
-      const blockedIds = (blockedData || []).map((b) => b.blocked_id);
-      const excludeIds = [user.id, ...likedIds, ...blockedIds];
+      const { data, error } = await supabase
+        .from("posts")
+        .select(`
+          *,
+          profiles (name, username, avatar_url, is_private)
+        `)
+        .eq("profiles.is_private", false) // Only show public posts in explore
+        .order("created_at", { ascending: false })
+        .limit(60);
 
-      let query = supabase.from("profiles").select("*").eq("profile_complete", true)
-        .not("avatar_url", "is", null).not("user_id", "in", `(${excludeIds.join(",")})`).limit(50);
-
-      if (myProfile?.preference && myProfile.preference !== "everyone") {
-        query = query.eq("gender", myProfile.preference);
-      }
-      const { data, error } = await query;
       if (error) throw error;
-      return (data || []) as Profile[];
-    },
-    enabled: !!user && !!myProfile,
+      return data || [];
+    }
   });
 
-  const likeMutation = useMutation({
-    mutationFn: async ({ likedId }: { likedId: string; isSuper: boolean }) => {
-      const { error } = await supabase.from("likes").insert({ liker_id: user!.id, liked_id: likedId });
-      if (error && error.code !== "23505") throw error;
-      const { data: match } = await supabase.from("matches").select("*")
-        .or(`and(user1_id.eq.${user!.id},user2_id.eq.${likedId}),and(user1_id.eq.${likedId},user2_id.eq.${user!.id})`).maybeSingle();
-      if (match) {
-        const { data: profile } = await supabase.from("profiles").select("*").eq("user_id", likedId).single();
-        if (profile) { setMatchedProfile(profile as Profile); setShowMatch(true); }
-      }
+  const { data: userResults = [], isLoading: usersLoading } = useQuery({
+    queryKey: ["search-users", searchQuery],
+    queryFn: async () => {
+      if (!searchQuery.trim()) return [];
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("user_id, name, username, avatar_url, is_verified")
+        .or(`username.ilike.%${searchQuery}%,name.ilike.%${searchQuery}%`)
+        .limit(10);
+      
+      if (error) throw error;
+      return data || [];
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["matches"] }); },
+    enabled: searchQuery.length > 1
   });
 
-  const handleLike = () => {
-    if (profiles[currentIndex]) {
-      setLastSwiped({ index: currentIndex, action: "like" });
-      likeMutation.mutate({ likedId: profiles[currentIndex].user_id, isSuper: false });
-      setCurrentIndex((i) => i + 1);
-    }
-  };
-  const handlePass = () => { setLastSwiped({ index: currentIndex, action: "pass" }); setCurrentIndex((i) => i + 1); };
-  const handleSuperLike = () => {
-    if (profiles[currentIndex]) {
-      setLastSwiped({ index: currentIndex, action: "superlike" });
-      likeMutation.mutate({ likedId: profiles[currentIndex].user_id, isSuper: true });
-      toast("⭐ Super Like sent!");
-      setCurrentIndex((i) => i + 1);
-    }
-  };
-
-  const handleRewind = async () => {
-    if (!lastSwiped || !user) return;
-    if (lastSwiped.action !== "pass") {
-      const prevProfile = profiles[lastSwiped.index];
-      if (prevProfile) {
-        await supabase.from("likes").delete().eq("liker_id", user.id).eq("liked_id", prevProfile.user_id);
-      }
-    }
-    setCurrentIndex(lastSwiped.index);
-    setLastSwiped(null);
-    toast("↩ Rewound");
-  };
-
-  const currentProfile = profiles[currentIndex];
-  const nextProfile = profiles[currentIndex + 1];
+  // Filter posts based on search query (hashtags or captions)
+  const filteredPosts = explorePosts.filter(post => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      post.caption?.toLowerCase().includes(query) ||
+      post.hashtags?.some((tag: string) => tag.toLowerCase().includes(query))
+    );
+  });
 
   return (
     <PageTransition className="min-h-screen pb-20 bg-background">
-      {/* Clean minimal header */}
-      <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl px-5 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate(-1)} className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center transition-all active:scale-90">
-            <ArrowLeft className="w-4 h-4 text-foreground" />
-          </button>
-          <h1 className="text-xl font-heading font-semibold text-gradient tracking-tight">Lumos</h1>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={handleRewind}
-            disabled={!lastSwiped}
-            className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center disabled:opacity-20 transition-all active:scale-90"
-          >
-            <Undo2 className="w-4 h-4 text-foreground" />
-          </button>
-          <button
-            onClick={() => setShowBoost(true)}
-            className="w-9 h-9 rounded-full gradient-primary flex items-center justify-center shadow-glow active:scale-90 transition-all"
-          >
-            <Zap className="w-4 h-4 text-primary-foreground" />
-          </button>
+      {/* Search Header */}
+      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-md px-4 py-3 border-b border-border">
+        <div className="relative group">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-foreground transition-colors" />
+          <Input 
+            placeholder="Search" 
+            className="pl-10 bg-secondary/50 border-0 h-10 rounded-xl focus-visible:ring-1 focus-visible:ring-primary/20"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
       </div>
 
-      {/* Stories */}
-      <StoriesBar />
-
-      <div className="relative flex items-center justify-center" style={{ height: "calc(100vh - 230px)" }}>
-        {isLoading ? (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
-            <Sparkles className="w-8 h-8 text-primary animate-pulse mx-auto mb-3" />
-            <p className="text-muted-foreground text-sm">Finding people near you...</p>
-          </motion.div>
-        ) : currentProfile ? (
-          <div className="relative w-full h-full flex items-center justify-center px-3">
-            {nextProfile && (
-              <div className="absolute inset-x-0 mx-auto w-full max-w-[370px] aspect-[2.8/4.5] rounded-2xl overflow-hidden opacity-40 scale-[0.92]">
-                <div className="absolute inset-0 bg-secondary">
-                  {nextProfile.avatar_url && <img src={nextProfile.avatar_url} alt="" className="w-full h-full object-cover" draggable={false} />}
+      <div className="max-w-md mx-auto">
+        {/* Search Results (Users) */}
+        <AnimatePresence>
+          {searchQuery.length > 0 && userResults.length > 0 && (
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="px-4 py-2 space-y-4"
+            >
+              <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Accounts</h3>
+              {userResults.map((u) => (
+                <div 
+                  key={u.user_id} 
+                  className="flex items-center gap-3 cursor-pointer"
+                  onClick={() => navigate(`/user/${u.user_id}`)}
+                >
+                  <Avatar className="w-12 h-12">
+                    <AvatarImage src={u.avatar_url} />
+                    <AvatarFallback>{u.name?.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold flex items-center gap-1">
+                      {u.username || u.name}
+                      {u.is_verified && <div className="w-3 h-3 bg-blue-500 rounded-full" />}
+                    </span>
+                    <span className="text-xs text-muted-foreground">{u.name}</span>
+                  </div>
                 </div>
-                <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-background/20 to-transparent" />
-              </div>
-            )}
-            <AnimatePresence mode="popLayout">
-              <ProfileCard key={currentProfile.id} profile={currentProfile} onLike={handleLike} onPass={handlePass} onSuperLike={handleSuperLike} />
-            </AnimatePresence>
+              ))}
+              <div className="border-b border-border pt-2" />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Explore Grid */}
+        {postsLoading ? (
+          <div className="grid grid-cols-3 gap-0.5 mt-0.5">
+            {[...Array(12)].map((_, i) => (
+              <div key={i} className="aspect-square bg-secondary animate-pulse" />
+            ))}
+          </div>
+        ) : filteredPosts.length > 0 ? (
+          <div className="grid grid-cols-3 gap-0.5 mt-0.5">
+            {filteredPosts.map((post, idx) => (
+              <motion.div 
+                key={post.id} 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: idx * 0.02 }}
+                className="relative aspect-square group cursor-pointer overflow-hidden"
+                onClick={() => navigate(`/feed#post-${post.id}`)}
+              >
+                {post.media_type === "video" ? (
+                  <video src={post.media_url} className="w-full h-full object-cover" />
+                ) : (
+                  <img src={post.media_url} alt="" className="w-full h-full object-cover" />
+                )}
+                
+                {/* Indicators */}
+                {post.media_type === "video" && (
+                  <Play className="absolute top-2 right-2 w-4 h-4 text-white drop-shadow-md fill-current" />
+                )}
+
+                {/* Hover Overlay - View Count (Simulated like screenshot) */}
+                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                   <div className="flex items-center gap-1.5 text-white font-bold text-sm">
+                      <Heart className="w-4 h-4 fill-current" />
+                      <span>{Math.floor(Math.random() * 100)}K</span>
+                   </div>
+                </div>
+
+                {/* Bottom View Count (As shown in user screenshot) */}
+                <div className="absolute bottom-2 left-2 flex items-center gap-1 text-[10px] text-white font-bold drop-shadow-md lg:hidden">
+                  <Play className="w-3 h-3 fill-current" />
+                  <span>{Math.floor(Math.random() * 10) + 1}.{Math.floor(Math.random() * 9)}M</span>
+                </div>
+              </motion.div>
+            ))}
           </div>
         ) : (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center px-10">
-            <div className="w-20 h-20 rounded-full bg-secondary flex items-center justify-center mx-auto mb-4">
-              <Sparkles className="w-8 h-8 text-muted-foreground" />
-            </div>
-            <h3 className="text-lg font-heading font-semibold">No more profiles</h3>
-            <p className="text-muted-foreground text-sm mt-1.5">Check back later for new people!</p>
-          </motion.div>
+          <div className="flex flex-col items-center justify-center py-20 text-center px-6">
+            <Search className="w-12 h-12 text-muted-foreground opacity-20 mb-4" />
+            <p className="text-muted-foreground">No posts found for "{searchQuery}"</p>
+          </div>
         )}
       </div>
 
       <BottomNav />
-      <MatchPopup isOpen={showMatch} matchedProfile={matchedProfile} myProfile={myProfile || null} onClose={() => setShowMatch(false)} />
-      <BoostModal isOpen={showBoost} onClose={() => setShowBoost(false)} />
     </PageTransition>
   );
 }
