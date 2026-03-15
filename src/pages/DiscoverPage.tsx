@@ -134,7 +134,7 @@ export default function DiscoverPage() {
                 )}
                 
                 {/* Indicators */}
-                {post.media_type === "video" && (
+                {(post.media_type === "video" || post.media_type === "reel") && (
                   <Play className="absolute top-2 right-2 w-4 h-4 text-white drop-shadow-md fill-current" />
                 )}
 

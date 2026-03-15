@@ -6,10 +6,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Send, MoreVertical, Shield, Flag, ImagePlus, Loader2, Check, CheckCheck, Heart, X } from "lucide-react";
+import { ArrowLeft, Send, MoreVertical, Shield, Flag, ImagePlus, Loader2, Check, CheckCheck, Heart, X, Phone, Video, Info, Mic, Camera, Smile, PlusCircle, Film } from "lucide-react";
 import ReportUserModal from "@/components/ReportUserModal";
 import TypingIndicator from "@/components/TypingIndicator";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import type { Profile } from "@/hooks/useProfile";
 import Lightbox from "@/components/Lightbox";
@@ -28,9 +28,85 @@ type Message = {
   message_type: string;
   is_read: boolean | null;
   created_at: string;
+  shared_post_id?: string;
 };
 
 const REACTIONS = ["❤️", "😂", "😮", "😢", "🔥", "👍"];
+
+const SharedPostPreview = ({ postId }: { postId: string }) => {
+  const navigate = useNavigate();
+  const { data: post, isLoading } = useQuery({
+    queryKey: ["shared-post", postId],
+    queryFn: async () => {
+      const { data, error } = await (supabase
+        .from("posts")
+        .select(`
+          *,
+          profiles (username, avatar_url)
+        `)
+        .eq("id", postId)
+        .single() as any);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!postId,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="w-48 aspect-[3/4] bg-secondary/50 rounded-2xl flex items-center justify-center animate-pulse border border-white/10">
+        <Loader2 className="w-5 h-5 animate-spin opacity-20" />
+      </div>
+    );
+  }
+
+  if (!post) {
+    return (
+      <div className="w-48 p-3 bg-secondary/20 rounded-2xl border border-white/5 text-center">
+        <p className="text-[10px] text-muted-foreground italic">Post unavailable</p>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      onClick={() => navigate(`/user/${post.user_id}/posts?postId=${post.id}`)}
+      className="w-52 bg-secondary/30 rounded-2xl overflow-hidden border border-white/10 cursor-pointer active:scale-[0.98] transition-all hover:bg-secondary/40 shadow-xl group mt-1"
+    >
+      {/* Mini Header */}
+      <div className="px-2.5 py-2 flex items-center gap-2 bg-white/5">
+        <div className="w-5 h-5 rounded-full overflow-hidden border border-white/10">
+          <img src={post.profiles?.avatar_url || ""} alt="" className="w-full h-full object-cover" />
+        </div>
+        <span className="text-[11px] font-bold truncate opacity-90">{post.profiles?.username}</span>
+      </div>
+
+      {/* Media Preview */}
+      <div className="aspect-square relative bg-black/10">
+        {post.media_type === "video" || post.media_type === "reel" ? (
+          <video src={post.media_url} className="w-full h-full object-cover" />
+        ) : (
+          <img src={post.media_url} alt="" className="w-full h-full object-cover" />
+        )}
+        {(post.media_type === "reel" || post.media_type === "video") && (
+          <div className="absolute top-2 right-2 p-1 rounded-md bg-black/40 backdrop-blur-md">
+            <Film className="w-3 h-3 text-white" />
+          </div>
+        )}
+      </div>
+
+      {/* Caption/Link */}
+      <div className="p-2.5">
+        {post.caption && (
+          <p className="text-[11px] line-clamp-2 opacity-80 mb-2 leading-tight">{post.caption}</p>
+        )}
+        <div className="text-[10px] font-bold text-primary flex items-center gap-1 group-hover:gap-2 transition-all">
+          View Post <ArrowLeft className="w-3 h-3 rotate-180" />
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default function ChatConversationPage() {
   const { userId } = useParams<{ userId: string }>();
@@ -61,7 +137,7 @@ export default function ChatConversationPage() {
         .from("profiles")
         .select("*")
         .eq("user_id", userId!)
-        .single();
+        .maybeSingle();
       return data as Profile;
     },
     enabled: !!userId,
@@ -265,60 +341,88 @@ export default function ChatConversationPage() {
     return acc;
   }, []);
 
+  if (otherProfile === undefined) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center p-10 text-center bg-background">
+        <Loader2 className="w-10 h-10 animate-spin text-primary opacity-50 mb-4" />
+        <p className="text-muted-foreground animate-pulse">Loading conversation...</p>
+      </div>
+    );
+  }
+
+  if (!otherProfile) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center p-10 text-center bg-background">
+        <div className="w-20 h-20 rounded-full bg-secondary flex items-center justify-center mb-6">
+          <MessageCircle className="w-10 h-10 text-muted-foreground opacity-20" />
+        </div>
+        <h3 className="text-xl font-bold mb-2">User not found</h3>
+        <p className="text-muted-foreground mb-8">This user may have deleted their account or the chat is invalid.</p>
+        <Button onClick={() => navigate("/chats")} variant="secondary" className="rounded-full px-8">
+          Back to Chats
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-screen bg-background">
-      {/* Header - glass effect */}
-      <div className="flex items-center gap-3 px-4 py-3 bg-card/80 backdrop-blur-xl border-b border-border">
-        <button onClick={() => navigate("/chats")} className="p-1.5 rounded-full hover:bg-secondary transition-colors">
-          <ArrowLeft className="w-5 h-5" />
+      {/* Header - Instagram Style */}
+      <div className="flex items-center gap-3 px-4 py-2 bg-background/80 backdrop-blur-xl border-b border-border/40 sticky top-0 z-[100]">
+        <button onClick={() => navigate("/chats")} className="p-1 -ml-1 hover:bg-secondary rounded-full transition-colors active:scale-90">
+          <ArrowLeft className="w-6 h-6" />
         </button>
 
-        <button onClick={() => navigate(`/user/${userId}`)} className="flex items-center gap-3 flex-1 text-left">
-          <div className="relative">
-            <div className="w-10 h-10 rounded-full overflow-hidden bg-secondary ring-2 ring-primary/20">
-              {otherProfile?.avatar_url ? (
-                <img src={otherProfile.avatar_url} alt="" className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-lg">
-                  {otherProfile?.gender === "female" ? "👩" : "👨"}
-                </div>
-              )}
-            </div>
-            {otherProfile?.is_online && (otherProfile?.show_online_status ?? true) && (
-              <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-success border-2 border-card animate-pulse" />
+        <button onClick={() => navigate(`/user/${userId}`)} className="flex items-center gap-3 flex-1 text-left min-w-0">
+          <div className="w-8 h-8 rounded-full overflow-hidden bg-secondary border border-border/40 flex-shrink-0">
+            {otherProfile?.avatar_url ? (
+              <img src={otherProfile.avatar_url} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-sm">
+                {otherProfile?.gender === "female" ? "👩" : "👨"}
+              </div>
             )}
           </div>
-          <div className="flex-1">
-            <h2 className="font-heading font-semibold text-sm">{otherProfile?.name || otherProfile?.username || "..."}</h2>
-            <p className="text-xs text-muted-foreground">
+          <div className="flex flex-col min-w-0">
+            <h2 className="font-bold text-[14px] truncate leading-tight">{otherProfile?.name || otherProfile?.username || "..."}</h2>
+            <div className="flex items-center gap-1">
               {isTyping ? (
-                <motion.span
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="text-primary font-medium"
-                >
-                  typing...
-                </motion.span>
-              ) : (otherProfile?.is_online && (otherProfile?.show_online_status ?? true)) ? "Online" : "Offline"}
-            </p>
+                <span className="text-[11px] text-primary font-medium">typing...</span>
+              ) : (
+                <>
+                  <div className={`w-1.5 h-1.5 rounded-full ${otherProfile?.is_online ? "bg-green-500" : "bg-neutral-500"}`} />
+                  <span className="text-[11px] text-muted-foreground">
+                    {otherProfile?.is_online ? "Active now" : "Offline"}
+                  </span>
+                </>
+              )}
+            </div>
           </div>
         </button>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="p-2 rounded-full hover:bg-secondary transition-colors">
-              <MoreVertical className="w-5 h-5 text-muted-foreground" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => setShowReport(true)}>
-              <Flag className="w-4 h-4 mr-2" /> Report User
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => blockMutation.mutate()} className="text-destructive">
-              <Shield className="w-4 h-4 mr-2" /> Block User
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex items-center gap-4 text-foreground/90">
+          <button className="p-1 hover:bg-secondary rounded-full transition-colors active:scale-90">
+            <Phone className="w-[20px] h-[20px]" />
+          </button>
+          <button className="p-1 hover:bg-secondary rounded-full transition-colors active:scale-90">
+            <Video className="w-[22px] h-[22px]" />
+          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="p-1 hover:bg-secondary rounded-full transition-colors active:scale-90">
+                <Info className="w-[22px] h-[22px]" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48 rounded-xl">
+              <DropdownMenuItem onClick={() => setShowReport(true)} className="py-2.5">
+                <Flag className="w-4 h-4 mr-2" /> Report User
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => blockMutation.mutate()} className="text-destructive py-2.5">
+                <Shield className="w-4 h-4 mr-2" /> Block User
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       {/* Messages */}
@@ -341,23 +445,57 @@ export default function ChatConversationPage() {
             {group.msgs.map((msg, idx) => {
               const isMine = msg.sender_id === user?.id;
               const prevMsg = idx > 0 ? group.msgs[idx - 1] : null;
-              const isConsecutive = prevMsg?.sender_id === msg.sender_id;
+              const nextMsg = idx < group.msgs.length - 1 ? group.msgs[idx + 1] : null;
+
+              const isFirstInSequence = prevMsg?.sender_id !== msg.sender_id;
+              const isLastInSequence = nextMsg?.sender_id !== msg.sender_id;
               const reaction = reactions[msg.id];
 
               return (
-                <div key={msg.id} className={`${isConsecutive ? "mt-0.5" : "mt-3"}`}>
-                  <motion.div
-                    initial={{ opacity: 0, y: 8, scale: 0.96 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    transition={{ duration: 0.2 }}
-                    className={`flex ${isMine ? "justify-end" : "justify-start"}`}
-                  >
-                    <div className="relative group">
-                      <div
-                        className={`max-w-[75%] px-4 py-2.5 text-sm relative shadow-sm ${isMine
-                          ? `gradient-primary text-primary-foreground ${isConsecutive ? "rounded-2xl rounded-tr-[4px]" : "rounded-2xl rounded-br-[4px]"}`
-                          : `bg-card border border-border text-card-foreground ${isConsecutive ? "rounded-2xl rounded-tl-[4px]" : "rounded-2xl rounded-bl-[4px]"}`
-                          }`}
+                <div key={msg.id} className={`${!isFirstInSequence ? "mt-0.5" : "mt-4"} flex flex-col`}>
+                  {!isMine && isFirstInSequence && (
+                    <div className="text-[11px] text-muted-foreground font-medium ml-10 mb-1">
+                      {otherProfile?.name || otherProfile?.username}
+                    </div>
+                  )}
+
+                  <div className={`flex items-end gap-2 ${isMine ? "flex-row-reverse" : "flex-row"}`}>
+                    {!isMine && (
+                      <div className="w-8 flex-shrink-0">
+                        {isLastInSequence ? (
+                          <div className="w-8 h-8 rounded-full overflow-hidden border border-border/20">
+                            {otherProfile?.avatar_url ? (
+                              <img src={otherProfile.avatar_url} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full bg-secondary flex items-center justify-center text-[10px]">
+                                {otherProfile?.name?.charAt(0)}
+                              </div>
+                            )}
+                          </div>
+                        ) : <div className="w-8" />}
+                      </div>
+                    )}
+
+                    <div className={`relative group max-w-[75%] ${isMine ? "items-end" : "items-start"}`}>
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className={`px-4 py-2 text-[14px] leading-[1.4] transition-all
+                          ${isMine
+                            ? "bg-gradient-to-br from-fuchsia-600 to-purple-600 text-white"
+                            : "bg-[#262626] text-white"
+                          }
+                          ${isMine
+                            ? (isFirstInSequence && isLastInSequence ? "rounded-[22px]" :
+                              isFirstInSequence ? "rounded-t-[22px] rounded-bl-[22px] rounded-br-[4px]" :
+                                isLastInSequence ? "rounded-b-[22px] rounded-tl-[22px] rounded-tr-[4px]" :
+                                  "rounded-l-[22px] rounded-r-[4px]")
+                            : (isFirstInSequence && isLastInSequence ? "rounded-[22px]" :
+                              isFirstInSequence ? "rounded-t-[22px] rounded-br-[22px] rounded-bl-[4px]" :
+                                isLastInSequence ? "rounded-b-[22px] rounded-tr-[22px] rounded-tl-[4px]" :
+                                  "rounded-r-[22px] rounded-l-[4px]")
+                          }
+                        `}
                         onDoubleClick={() => setActiveReaction(activeReaction === msg.id ? null : msg.id)}
                       >
                         {msg.message_type === "image" ? (
@@ -369,8 +507,8 @@ export default function ChatConversationPage() {
                           />
                         ) : msg.message_type === "image_once" ? (
                           msg.content === "viewed" ? (
-                            <div className="flex items-center justify-center p-4 bg-secondary/50 rounded-xl w-40 h-32 border border-border">
-                              <p className="text-muted-foreground text-xs font-semibold flex flex-col items-center">
+                            <div className="flex items-center justify-center p-4 bg-[#333] rounded-xl w-40 h-32 border border-border/20">
+                              <p className="text-muted-foreground text-[11px] font-semibold flex flex-col items-center">
                                 <ImagePlus className="w-5 h-5 mb-1 opacity-50" />
                                 Viewed
                               </p>
@@ -380,51 +518,36 @@ export default function ChatConversationPage() {
                               className="flex items-center justify-center p-4 bg-primary/10 rounded-xl w-40 h-32 border border-primary/20 cursor-pointer hover:bg-primary/20 transition-colors"
                               onClick={() => handleViewOneTimeImage(msg.id, msg.content)}
                             >
-                              <p className="text-primary text-xs font-semibold flex flex-col items-center">
+                              <p className="text-primary text-[11px] font-semibold flex flex-col items-center">
                                 <Shield className="w-5 h-5 mb-1" />
                                 Tap to view
                               </p>
                             </div>
                           )
+                        ) : msg.message_type === "post_share" ? (
+                          <SharedPostPreview postId={msg.shared_post_id!} />
                         ) : (
-                          <p className="leading-relaxed">{msg.content}</p>
+                          <p>{msg.content}</p>
                         )}
 
-                        <div className={`flex flex-col mt-1 ${isMine ? "items-end" : "items-start"}`}>
-                          <div className="flex items-center gap-1">
-                            <span className={`text-[10px] ${isMine ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
-                              {format(new Date(msg.created_at), "HH:mm")}
-                            </span>
-                            {isMine && (
-                              <span className="text-[9px] font-medium text-primary-foreground/80 lowercase italic">
-                                {msg.is_read 
-                                  ? `Seen ${formatDistanceToNow(new Date(msg.created_at), { addSuffix: false })} ago` 
-                                  : `Sent ${formatDistanceToNow(new Date(msg.created_at), { addSuffix: false })} ago`}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
+                        {reaction && (
+                          <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            className={`absolute -bottom-2 ${isMine ? "right-1" : "left-1"} bg-[#262626] border border-white/10 rounded-full px-1 py-0.5 text-[10px] shadow-lg`}
+                          >
+                            {reaction}
+                          </motion.div>
+                        )}
+                      </motion.div>
 
-                      {/* Reaction display */}
-                      {reaction && (
-                        <motion.div
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          className={`absolute -bottom-2.5 ${isMine ? "left-2" : "right-2"} bg-card border border-border rounded-full px-1.5 py-0.5 text-xs shadow-card`}
-                        >
-                          {reaction}
-                        </motion.div>
-                      )}
-
-                      {/* Reaction picker */}
                       <AnimatePresence>
                         {activeReaction === msg.id && (
                           <motion.div
                             initial={{ opacity: 0, scale: 0.8, y: 5 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.8, y: 5 }}
-                            className={`absolute -top-10 ${isMine ? "right-0" : "left-0"} flex gap-1 bg-card border border-border rounded-full px-2 py-1.5 shadow-elevated z-10`}
+                            className={`absolute -top-10 ${isMine ? "right-0" : "left-0"} flex gap-1 bg-[#262626] border border-white/10 rounded-full px-2 py-1 shadow-xl z-10`}
                           >
                             {REACTIONS.map((emoji) => (
                               <button
@@ -439,7 +562,7 @@ export default function ChatConversationPage() {
                         )}
                       </AnimatePresence>
                     </div>
-                  </motion.div>
+                  </div>
                 </div>
               );
             })}
@@ -457,64 +580,72 @@ export default function ChatConversationPage() {
 
       <div ref={messagesEndRef} />
 
-      {/* Input - polished */}
-      <div className="safe-bottom bg-background">
+      {/* Input - Polished Instagram Style */}
+      <div className="bg-background px-3 py-2 border-t border-border/20">
         <AnimatePresence>
           {selectedPhotoPreview && (
             <motion.div
               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
-              className="p-3 bg-card border-t border-border flex items-end gap-3"
+              className="mb-2 p-2 bg-secondary/30 rounded-2xl flex items-end gap-3"
             >
               <div className="relative">
-                <img src={selectedPhotoPreview} alt="Selected" className="h-24 rounded-lg object-cover border border-border" />
-                <button type="button" onClick={() => { setSelectedPhoto(null); setSelectedPhotoPreview(null); }} className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-destructive flex items-center justify-center text-white shadow-md hover:scale-110 transition-transform">
+                <img src={selectedPhotoPreview} alt="Selected" className="h-20 rounded-xl object-cover border border-border/20" />
+                <button type="button" onClick={() => { setSelectedPhoto(null); setSelectedPhotoPreview(null); }} className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-destructive flex items-center justify-center text-white shadow-md">
                   <X className="w-3 h-3" />
                 </button>
               </div>
-              <div className="flex-1 flex flex-col gap-2">
-                <Button
-                  type="button"
-                  variant={isOneTimeView ? "default" : "outline"}
-                  size="sm"
-                  className={`rounded-full self-start text-xs h-8 ${isOneTimeView ? "gradient-primary text-primary-foreground border-0" : ""}`}
-                  onClick={() => setIsOneTimeView(!isOneTimeView)}
-                >
-                  <Shield className="w-3.5 h-3.5 mr-1" />
-                  1-Time View
-                </Button>
-              </div>
+              <Button
+                type="button"
+                variant={isOneTimeView ? "default" : "outline"}
+                size="sm"
+                className={`rounded-full text-[10px] h-7 ${isOneTimeView ? "bg-primary text-white" : ""}`}
+                onClick={() => setIsOneTimeView(!isOneTimeView)}
+              >
+                <Shield className="w-3 h-3 mr-1" />
+                1-Time View
+              </Button>
             </motion.div>
           )}
         </AnimatePresence>
-        <form
-          onSubmit={handleSend}
-          className="flex items-center gap-2 p-3 bg-card/90 backdrop-blur-xl border-t border-border"
-        >
+
+        <form onSubmit={handleSend} className="flex items-center gap-2">
           <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploadingPhoto}
-            className="p-2.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
-          >
-            {uploadingPhoto ? <Loader2 className="w-5 h-5 animate-spin" /> : <ImagePlus className="w-5 h-5" />}
-          </button>
-          <Input
-            value={newMessage}
-            onChange={handleInputChange}
-            placeholder="Type a message..."
-            className="flex-1 bg-secondary border-0 rounded-full px-4 h-10 focus-visible:ring-1 focus-visible:ring-primary/50"
-          />
-          <motion.div whileTap={{ scale: 0.85 }}>
-            <Button
-              type="submit"
-              size="icon"
-              disabled={(!newMessage.trim() && !selectedPhoto) || sendMutation.isPending || uploadingPhoto}
-              className="rounded-full gradient-primary text-primary-foreground shadow-glow w-10 h-10 flex-shrink-0"
+
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="p-1.5 rounded-full bg-blue-500 text-white active:scale-90 transition-transform"
             >
-              <Send className="w-4 h-4 ml-0.5" />
-            </Button>
-          </motion.div>
+              <Camera className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="flex-1 relative flex items-center">
+            <Input
+              value={newMessage}
+              onChange={handleInputChange}
+              placeholder="Message..."
+              className="w-full bg-secondary border-0 rounded-full pl-4 pr-24 h-11 text-[14px] focus-visible:ring-0"
+            />
+            <div className="absolute right-2 flex items-center gap-3 text-foreground/80">
+              {newMessage.trim() ? (
+                <button
+                  type="submit"
+                  className="text-primary font-bold text-[14px] pr-2 hover:opacity-80 active:scale-95 transition-all"
+                >
+                  Send
+                </button>
+              ) : (
+                <>
+                  <button type="button" className="hover:opacity-70 active:scale-95 transition-all"><Mic className="w-5 h-5" /></button>
+                  <button type="button" className="hover:opacity-70 active:scale-95 transition-all" onClick={() => fileInputRef.current?.click()}><ImagePlus className="w-5 h-5" /></button>
+                  <button type="button" className="hover:opacity-70 active:scale-95 transition-all"><Smile className="w-5 h-5" /></button>
+                  <button type="button" className="hover:opacity-70 active:scale-95 transition-all pr-1"><PlusCircle className="w-5 h-5" /></button>
+                </>
+              )}
+            </div>
+          </div>
         </form>
       </div>
 

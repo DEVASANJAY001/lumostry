@@ -29,6 +29,7 @@ import UserGalleryPage from "./pages/UserGalleryPage";
 import WhoLikedMePage from "./pages/WhoLikedMePage";
 import ProfileVisitorsPage from "./pages/ProfileVisitorsPage";
 import FeedPage from "./pages/FeedPage";
+import UserPostsPage from "./pages/UserPostsPage";
 import NotFound from "./pages/NotFound";
 import { Sparkles } from "lucide-react";
 
@@ -69,8 +70,8 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={<Navigate to="/feed" replace />} />
       <Route path="/feed" element={<FeedPage />} />
-      <Route path="/search" element={<DiscoverPage />} />
-      <Route path="/discover" element={<SearchPage />} />
+      <Route path="/search" element={<SearchPage />} />
+      <Route path="/discover" element={<DiscoverPage />} />
       <Route path="/matches" element={<MatchesPage />} />
       <Route path="/chats" element={<ChatsPage />} />
       <Route path="/chat/:userId" element={<ChatConversationPage />} />
@@ -79,6 +80,7 @@ function AppRoutes() {
       <Route path="/settings" element={<SettingsPage />} />
       <Route path="/verify" element={<VerifyProfilePage />} />
       <Route path="/user/:userId" element={<ViewProfilePage />} />
+      <Route path="/user/:userId/posts" element={<UserPostsPage />} />
       <Route path="/friend-requests" element={<FriendRequestsPage />} />
       <Route path="/terms" element={<TermsPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
@@ -89,6 +91,7 @@ function AppRoutes() {
       <Route path="/gallery/:userId" element={<UserGalleryPage />} />
       <Route path="/who-liked-me" element={<WhoLikedMePage />} />
       <Route path="/profile-visitors" element={<ProfileVisitorsPage />} />
+      <Route path="/:userId" element={<ViewProfilePage />} />
       <Route path="*" element={<Navigate to="/discover" replace />} />
     </Routes>
   );

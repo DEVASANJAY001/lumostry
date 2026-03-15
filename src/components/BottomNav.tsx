@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useProfile } from "@/hooks/useProfile";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Home, Search, PlaySquare, Heart, User, Compass } from "lucide-react";
 
@@ -18,6 +19,7 @@ export default function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { data: profile } = useProfile();
 
   if (location.pathname.startsWith("/chat/")) return null;
 
@@ -82,8 +84,8 @@ export default function BottomNav() {
                     {item.path === "/profile" && user?.id ? (
                       <div className={`w-6 h-6 rounded-full overflow-hidden border ${active ? "border-foreground" : "border-transparent"}`}>
                         <Avatar className="w-full h-full">
-                          <AvatarImage src={(user as any)?.user_metadata?.avatar_url} />
-                          <AvatarFallback><User className="w-4 h-4" /></AvatarFallback>
+                          <AvatarImage src={profile?.avatar_url || (user as any)?.user_metadata?.avatar_url} className="object-cover" />
+                          <AvatarFallback>{profile?.name?.[0] || <User className="w-4 h-4" />}</AvatarFallback>
                         </Avatar>
                       </div>
                     ) : (

@@ -1,27 +1,55 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Upload, Image as ImageIcon, Video, Send, Loader2, Hash } from "lucide-react";
+import { X, Upload, Image as ImageIcon, Video, Send, Loader2, Hash, PlusSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useQuery } from "@tanstack/react-query";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Search, Check } from "lucide-react";
 
 interface CreatePostModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  initialMode?: "post" | "story" | "reel";
 }
 
-export default function CreatePostModal({ isOpen, onClose, onSuccess }: CreatePostModalProps) {
+export default function CreatePostModal({ isOpen, onClose, onSuccess, initialMode = "post" }: CreatePostModalProps) {
   const { user } = useAuth();
   const [caption, setCaption] = useState("");
   const [hashtags, setHashtags] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [mode, setMode] = useState<"post" | "story" | "reel">(initialMode);
   const [uploading, setUploading] = useState(false);
+  const [mentionSearch, setMentionSearch] = useState("");
+  const [selectedMentions, setSelectedMentions] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { data: friends = [] } = useQuery({
+    queryKey: ["friends-list", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data: matches } = await supabase
+        .from("matches")
+        .select("*")
+        .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`);
+      if (!matches || matches.length === 0) return [];
+      const otherIds = matches.map(m => m.user1_id === user.id ? m.user2_id : m.user1_id);
+      const { data: profiles } = await supabase.from("profiles").select("*").in("user_id", otherIds);
+      return profiles || [];
+    },
+    enabled: isOpen && mode === "story",
+  });
+
+  const filteredFriends = friends.filter(f => 
+    f.name?.toLowerCase().includes(mentionSearch.toLowerCase()) || 
+    f.username?.toLowerCase().includes(mentionSearch.toLowerCase())
+  );
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -37,40 +65,59 @@ export default function CreatePostModal({ isOpen, onClose, onSuccess }: CreatePo
 
     try {
       const ext = file.name.split(".").pop();
+      const storageBucket = mode === "story" ? "stories" : "posts";
       const path = `${user.id}/${Date.now()}.${ext}`;
+      
       const { error: uploadError } = await supabase.storage
-        .from("posts")
+        .from(storageBucket)
         .upload(path, file);
 
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage.from("posts").getPublicUrl(path);
+      const { data: urlData } = supabase.storage.from(storageBucket).getPublicUrl(path);
       const mediaUrl = urlData.publicUrl;
-      const mediaType = file.type.startsWith("video") ? "video" : "image";
 
-      const tagsArray = hashtags
-        .split(/[ ,]+/)
-        .filter(tag => tag)
-        .map(tag => tag.replace(/^#/, ""));
+      if (mode === "story") {
+        const { data: storyData, error: dbError } = await supabase.from("stories").insert({
+          user_id: user.id,
+          media_url: mediaUrl,
+          caption: caption || null,
+          expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+        }).select().single();
 
-      const { error: dbError } = await supabase.from("posts").insert({
-        user_id: user.id,
-        media_url: mediaUrl,
-        media_type: mediaType,
-        caption,
-        hashtags: tagsArray
-      });
+        if (dbError) throw dbError;
 
-      if (dbError) throw dbError;
+        if (selectedMentions.length > 0 && storyData) {
+          const mentionInserts = selectedMentions.map(mentionedId => ({
+            story_id: storyData.id,
+            user_id: mentionedId
+          }));
+          await supabase.from("story_mentions" as any).insert(mentionInserts);
+        }
+      } else {
+        const tagsArray = hashtags
+          .split(/[ ,]+/)
+          .filter(tag => tag)
+          .map(tag => tag.replace(/^#/, ""));
 
-      toast.success("Post shared successfully! ✨");
+        const { error: dbError } = await supabase.from("posts").insert({
+          user_id: user.id,
+          media_url: mediaUrl,
+          media_type: mode === "reel" ? "reel" : (file.type.startsWith("video") ? "video" : "image"),
+          caption,
+          hashtags: tagsArray
+        });
+        if (dbError) throw dbError;
+      }
+
+      toast.success(`${mode.charAt(0).toUpperCase() + mode.slice(1)} shared successfully! ✨`);
       onSuccess?.();
       setCaption("");
       setHashtags("");
       setFile(null);
       setPreview(null);
     } catch (error: any) {
-      toast.error(error.message || "Failed to share post");
+      toast.error(error.message || `Failed to share ${mode}`);
     } finally {
       setUploading(false);
     }
@@ -101,7 +148,7 @@ export default function CreatePostModal({ isOpen, onClose, onSuccess }: CreatePo
             <button onClick={onClose} className="p-2 rounded-full hover:bg-secondary">
               <X className="w-5 h-5" />
             </button>
-            <h2 className="font-heading font-bold">New Post</h2>
+            <h2 className="font-heading font-bold">New {mode.charAt(0).toUpperCase() + mode.slice(1)}</h2>
             <Button 
               size="sm" 
               onClick={handleSubmit}
@@ -141,6 +188,14 @@ export default function CreatePostModal({ isOpen, onClose, onSuccess }: CreatePo
                   >
                     <X className="w-4 h-4" />
                   </button>
+
+                  {/* Type Preview Indicator (Optional) */}
+                  <div className="absolute top-4 left-4">
+                     <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full text-[10px] font-bold text-white uppercase tracking-wider flex items-center gap-2 border border-white/10">
+                        {mode === "reel" ? <Video className="w-3 h-3" /> : mode === "story" ? <PlusSquare className="w-3 h-3" /> : <ImageIcon className="w-3 h-3" />}
+                        {mode}
+                     </div>
+                  </div>
                 </>
               ) : (
                 <div className="text-center space-y-2 p-10">
@@ -172,19 +227,84 @@ export default function CreatePostModal({ isOpen, onClose, onSuccess }: CreatePo
               />
             </div>
 
-            {/* Hashtags */}
-            <div className="space-y-2 pb-6">
-              <label className="text-sm font-semibold flex items-center gap-1.5">
-                <Hash className="w-4 h-4 text-primary" /> Hashtags
-              </label>
-              <Input 
-                placeholder="e.g. travel, vibes, sunset" 
-                value={hashtags}
-                onChange={(e) => setHashtags(e.target.value)}
-                className="bg-secondary/50 border-0 rounded-xl h-11 focus-visible:ring-1 focus-visible:ring-primary/40"
-              />
-              <p className="text-[10px] text-muted-foreground pl-1">Separate tags with spaces or commas</p>
-            </div>
+            {/* Hashtags (Only for posts/reels) */}
+            {mode !== "story" && (
+              <div className="space-y-2 pb-6">
+                <label className="text-sm font-semibold flex items-center gap-1.5">
+                  <Hash className="w-4 h-4 text-primary" /> Hashtags
+                </label>
+                <Input 
+                  placeholder="e.g. travel, vibes, sunset" 
+                  value={hashtags}
+                  onChange={(e) => setHashtags(e.target.value)}
+                  className="bg-secondary/50 border-0 rounded-xl h-11 focus-visible:ring-1 focus-visible:ring-primary/40"
+                />
+                <p className="text-[10px] text-muted-foreground pl-1">Separate tags with spaces or commas</p>
+              </div>
+            )}
+
+            {/* Mentions for Stories */}
+            {mode === "story" && (
+              <div className="space-y-3 pb-6">
+                <label className="text-sm font-semibold flex items-center gap-1.5">
+                  <Hash className="w-4 h-4 text-primary" /> Tag Friends
+                </label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input 
+                    placeholder="Search people..." 
+                    value={mentionSearch}
+                    onChange={(e) => setMentionSearch(e.target.value)}
+                    className="pl-10 bg-secondary/50 border-0 rounded-xl h-11"
+                  />
+                </div>
+                
+                {selectedMentions.length > 0 && (
+                   <div className="flex flex-wrap gap-2 py-1">
+                      {friends.filter(f => selectedMentions.includes(f.user_id)).map(friend => (
+                        <div key={friend.user_id} className="bg-primary/10 text-primary text-[10px] font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 border border-primary/20">
+                           @{friend.username}
+                           <button onClick={() => setSelectedMentions(prev => prev.filter(id => id !== friend.user_id))}>
+                              <X className="w-3 h-3" />
+                           </button>
+                        </div>
+                      ))}
+                   </div>
+                )}
+
+                <div className="max-h-40 overflow-y-auto space-y-1 bg-secondary/10 rounded-2xl p-2 border border-border/20">
+                  {filteredFriends.length === 0 ? (
+                    <p className="text-[10px] text-muted-foreground text-center py-4">No friends found</p>
+                  ) : filteredFriends.map((friend) => (
+                    <button
+                      key={friend.id}
+                      onClick={() => {
+                        setSelectedMentions(prev => 
+                          prev.includes(friend.user_id) ? prev.filter(id => id !== friend.user_id) : [...prev, friend.user_id]
+                        );
+                      }}
+                      className={`w-full flex items-center gap-3 p-2 rounded-xl transition-colors ${
+                        selectedMentions.includes(friend.user_id) ? "bg-primary/5" : "hover:bg-secondary/50"
+                      }`}
+                    >
+                      <Avatar className="w-8 h-8">
+                        <AvatarImage src={friend.avatar_url} />
+                        <AvatarFallback>{friend.name?.[0]}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 text-left">
+                        <p className="text-xs font-bold leading-tight">{friend.name || friend.username}</p>
+                        <p className="text-[10px] text-muted-foreground">@{friend.username}</p>
+                      </div>
+                      {selectedMentions.includes(friend.user_id) && (
+                        <div className="bg-primary rounded-full p-1">
+                          <Check className="w-2 h-2 text-white stroke-[3px]" />
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </motion.div>
       </div>

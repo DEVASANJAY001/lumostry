@@ -122,9 +122,10 @@
     font-family: var(--font-body);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     letter-spacing: -0.01em;
     overscroll-behavior: none;
+    text-rendering: optimizeLegibility;
   }
 
   h1,
@@ -233,10 +234,19 @@
   /* Smooth interactive states */
   .tap-scale {
     @apply transition-all duration-200 active:scale-[0.96] active:opacity-80;
+    will-change: transform;
   }
 
   .tap-scale-sm {
     @apply transition-all duration-150 active:scale-[0.98] active:opacity-90;
+    will-change: transform;
+  }
+
+  /* Optimized animations */
+  .gpu {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
   }
 
   /* Staggered fade-in for lists */

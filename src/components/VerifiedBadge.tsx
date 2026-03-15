@@ -2,13 +2,14 @@ import { motion } from "framer-motion";
 import { Check, Shield, Star } from "lucide-react";
 
 interface VerifiedBadgeProps {
-  size?: "sm" | "md" | "lg";
+  size?: "xs" | "sm" | "md" | "lg";
   type?: "verified" | "premium" | "trusted";
   className?: string;
   verifiedUntil?: string | null;
 }
 
 const sizeMap = { 
+  xs: "w-3 h-3",
   sm: "w-4 h-4", 
   md: "w-5 h-5", 
   lg: "w-7 h-7" 

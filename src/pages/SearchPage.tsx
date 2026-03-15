@@ -92,7 +92,7 @@ export default function SearchPage() {
     queryKey: ["wallet", user?.id],
     queryFn: async () => {
       if (!user) return null;
-      const { data } = await supabase.from("wallets").select("*").eq("user_id", user.id).single();
+      const { data } = await supabase.from("wallets").select("*").eq("user_id", user.id).maybeSingle();
       return data;
     },
     enabled: !!user,

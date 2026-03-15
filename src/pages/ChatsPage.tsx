@@ -10,6 +10,7 @@ import { MessageCircle, ArrowLeft } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import type { Profile } from "@/hooks/useProfile";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import NotesBar from "@/components/NotesBar";
 
 interface ChatPreview {
   profile: Profile;
@@ -121,45 +122,12 @@ export default function ChatsPage() {
         </motion.div>
       ) : (
         <div className="py-2">
-          {/* Stories Row */}
-          <div className="mb-4">
-            <ScrollArea className="w-full whitespace-nowrap px-5">
-              <div className="flex w-max space-x-4 pb-4 pt-2">
-                {chatPreviews.map((chat, i) => {
-                  const isWatched = watchedStories.includes(chat.profile.user_id);
-                  return (
-                    <motion.div
-                      key={`story-${chat.profile.user_id}`}
-                      custom={i}
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: i * 0.05, type: "spring", stiffness: 300, damping: 20 }}
-                      className="flex flex-col items-center gap-1.5 cursor-pointer group"
-                      onClick={() => handleOpenChat(chat.profile.user_id)}
-                    >
-                      <div className={`p-[2.5px] rounded-full transition-colors duration-300 ${isWatched ? "bg-border" : "bg-gradient-to-tr from-amber-400 via-rose-500 to-fuchsia-600"}`}>
-                        <div className="w-16 h-16 rounded-full overflow-hidden bg-background border-2 border-background p-0.5">
-                          {chat.profile.avatar_url ? (
-                            <img src={chat.profile.avatar_url} alt="" className="w-full h-full object-cover rounded-full group-hover:scale-105 transition-transform duration-300" />
-                          ) : (
-                            <div className="w-full h-full rounded-full bg-secondary flex items-center justify-center text-xl">
-                              {chat.profile.gender === "female" ? "👩" : "👨"}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <span className="text-[11px] font-medium text-muted-foreground max-w-[70px] truncate">
-                        {chat.profile.name || chat.profile.username}
-                      </span>
-                    </motion.div>
-                  );
-                })}
-              </div>
-              <ScrollBar orientation="horizontal" className="hidden" />
-            </ScrollArea>
+          {/* Notes Bar at the top of Chats */}
+          <div className="border-b border-border/50">
+            <NotesBar />
           </div>
 
-          <div className="px-5 mb-2">
+          <div className="px-5 mb-2 mt-4">
             <h2 className="text-sm font-semibold text-foreground/80 font-heading">Messages</h2>
           </div>
 
